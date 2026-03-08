@@ -9,24 +9,27 @@
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #121418; --card: #1e2126; --accent: #0088cc; --text: #fff; --red: #ff4d4d; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--card); position: sticky; top: 0; z-index: 100; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         
         /* Сетка 2x2 */
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; position: relative; }
-        .media-box { width: 100%; aspect-ratio: 1/1; background: #000; }
-        .media-box img { width: 100%; height: 100%; object-fit: cover; }
+        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; display: flex; flex-direction: column; }
+        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; cursor: pointer; }
         
-        .info-overlay { padding: 8px; font-size: 0.85rem; }
+        .card-info { padding: 10px; }
         .card-price { color: var(--accent); font-weight: bold; font-size: 1rem; }
         .card-timer { color: var(--red); font-size: 0.75rem; font-weight: bold; margin-top: 4px; }
 
-        /* Экран деталей */
-        #detail-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        .forum-item { background: #25282e; padding: 10px; border-radius: 10px; margin-top: 8px; border-left: 3px solid var(--accent); }
+        /* Экраны */
+        #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
         
-        .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 15px; left: 15px; z-index: 10; }
+        /* Форум */
+        .q-item { background: #25282e; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--accent); }
+        .q-author { font-size: 0.7rem; color: #888; margin-bottom: 4px; }
+        .q-ans { margin-top: 8px; color: #00ff88; font-size: 0.9rem; padding-left: 10px; border-left: 1px solid #444; }
+
+        .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; }
         input, textarea { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 5px 0; box-sizing: border-box; }
     </style>
 </head>
@@ -40,28 +43,32 @@
     <div id="lots-list"></div>
 
     <div id="detail-screen">
-        <button onclick="closeDetails()" style="color:#888; background:none; border:none; padding:10px 0;">← Назад</button>
+        <button onclick="closeDetails()" style="color:#888; background:none; border:none; padding:10px 0; cursor:pointer;">← Назад</button>
         <div id="detail-content"></div>
-        <div id="forum-section" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-            <h3>💬 Форум (Вопрос/Ответ)</h3>
+        <div id="detail-timer" style="color:var(--red); font-weight:bold; margin:15px 0; font-size:1.2rem;"></div>
+        
+        <div style="margin-top:25px; border-top:1px solid #333; padding-top:20px;">
+            <h3>💬 Форум лота</h3>
             <div id="questions-list"></div>
-            <div style="display:flex; gap:5px; margin-top:10px;">
-                <input type="text" id="q-input" placeholder="Ваш вопрос...">
-                <button onclick="sendQuestion()" style="background:var(--accent); border:none; color:white; border-radius:10px; padding:0 15px;">🔍</button>
+            <div style="display:flex; gap:8px; margin-top:15px;">
+                <input type="text" id="q-input" placeholder="Задать вопрос...">
+                <button onclick="sendQuestion()" style="background:var(--accent); border:none; color:white; border-radius:10px; padding:0 20px;">🔍</button>
             </div>
         </div>
     </div>
 
-    <div id="create-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:1000; padding:20px; box-sizing:border-box; overflow-y:auto;">
-        <h2>🆕 Создать лот</h2>
+    <div id="create-screen">
+        <h2>🆕 Новый лот</h2>
         <input type="text" id="title" placeholder="Название">
-        <textarea id="desc" placeholder="Описание и условия"></textarea>
-        <button onclick="openMedia()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin-bottom:10px;">📸 Загрузить с телефона</button>
-        <input type="number" id="price" placeholder="Цена">
-        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать</button>
+        <textarea id="desc" placeholder="Описание и условия" rows="4"></textarea>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin-bottom:10px;">📸 Загрузить фото/видео с телефона</button>
+        <div id="up-status" style="text-align:center; color:var(--accent); font-size:0.8rem; margin-bottom:10px;">Файл не выбран</div>
+        <input type="number" id="price" placeholder="Стартовая цена">
+        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать навсегда</button>
+        <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:#888; width:100%; margin-top:15px;">Отмена</button>
     </div>
 
-    <button class="btn-main" onclick="openCreate()">+ Добавить лот</button>
+    <button class="btn-main" onclick="openCreate()">+ Выставить товар</button>
 
     <script>
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -72,14 +79,17 @@
         let uploadedUrl = "";
         let currentP = null;
 
-        function openMedia() {
+        function openUpload() {
             cloudinary.openUploadWidget({
                 cloudName: 'dptgowe5b', 
                 uploadPreset: 'tonpreset', 
                 sources: ['local', 'camera'],
                 multiple: false
             }, (err, res) => {
-                if (!err && res.event === "success") uploadedUrl = res.info.secure_url;
+                if (!err && res.event === "success") {
+                    uploadedUrl = res.info.secure_url;
+                    document.getElementById('up-status').innerText = "✅ Файл загружен!";
+                }
             });
         }
 
@@ -88,8 +98,8 @@
             const data = await res.json();
             document.getElementById('lots-list').innerHTML = data.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
-                    <div class="media-box"><img src="${p.mediaUrl || ''}"></div>
-                    <div class="info-overlay">
+                    <img src="${p.mediaUrl || ''}" class="media-sq">
+                    <div class="card-info">
                         <div style="font-weight:bold; overflow:hidden; white-space:nowrap;">${p.title}</div>
                         <div class="card-price">${p.currentBid} TON</div>
                         <div class="card-timer timer-active" data-time="${p.endTime}">--:--:--</div>
@@ -103,17 +113,49 @@
             const data = await res.json();
             currentP = data.find(x => x._id === id);
             
+            const myWallet = tonConnectUI.wallet?.account.address;
+            const isOwner = myWallet && myWallet.toLowerCase() === currentP.ownerWallet.toLowerCase();
+
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
                 <h1>${currentP.title}</h1>
                 <p style="color:#aaa;">${currentP.description}</p>
-                <div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">Текущая ставка: ${currentP.currentBid} TON</div>
-                <div id="detail-timer-val" style="color:var(--red); font-weight:bold; margin-top:10px;"></div>
+                <div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">Ставка: ${currentP.currentBid} TON</div>
             `;
             
-            renderForum();
+            renderForum(myWallet, isOwner);
             document.getElementById('detail-screen').style.display = 'block';
             updateTimers();
+        }
+
+        function renderForum(myWallet, isOwner) {
+            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
+                <div class="q-item">
+                    <div class="q-author">${q.userWallet.slice(0,6)}...</div>
+                    <div>${q.text}</div>
+                    ${q.userWallet === myWallet ? `<div style="font-size:0.7rem; color:var(--red); margin-top:5px; cursor:pointer;" onclick="deleteQ('${q._id}')">Удалить свой вопрос</div>` : ''}
+                    ${q.answer ? `<div class="q-ans"><strong>Ответ:</strong> ${q.answer}</div>` : 
+                      (isOwner ? `<input type="text" id="ans-${q._id}" placeholder="Ваш ответ..."><button onclick="sendAns('${q._id}')">Ответить</button>` : '')}
+                </div>
+            `).join('');
+        }
+
+        async function sendQuestion() {
+            const text = document.getElementById('q-input').value;
+            const wallet = tonConnectUI.wallet.account.address;
+            await fetch(`/api/products/${currentP._id}/question`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet, text }) });
+            openDetails(currentP._id);
+        }
+
+        async function deleteQ(qId) {
+            await fetch(`/api/products/${currentP._id}/question/delete`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ qId }) });
+            openDetails(currentP._id);
+        }
+
+        async function sendAns(qId) {
+            const answer = document.getElementById(`ans-${qId}`).value;
+            await fetch(`/api/products/${currentP._id}/answer`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, qId, answer }) });
+            openDetails(currentP._id);
         }
 
         function updateTimers() {
@@ -123,30 +165,20 @@
             });
             if (currentP) {
                 const diff = new Date(currentP.endTime) - new Date();
-                document.getElementById('detail-timer-val').innerText = "⏳ До конца: " + (diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО");
+                document.getElementById('detail-timer').innerText = "⏳ До конца: " + (diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО");
             }
             setTimeout(updateTimers, 1000);
         }
 
-        function renderForum() {
-            const myWallet = tonConnectUI.wallet?.account.address;
-            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
-                <div class="forum-item">
-                    <div style="font-size:0.7rem; color:#888;">${q.userWallet.slice(0,6)}...</div>
-                    <div>${q.text}</div>
-                    ${q.userWallet === myWallet ? `<div style="font-size:0.7rem; color:var(--accent);" onclick="deleteMsg('${q._id}')">Удалить</div>` : ''}
-                </div>
-            `).join('');
-        }
-
         async function saveProduct() {
-            const data = { title: document.getElementById('title').value, description: document.getElementById('desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('price').value, currency: "TON", ownerWallet: tonConnectUI.wallet.account.address };
+            if(!uploadedUrl) return alert("Загрузите фото!");
+            const data = { title: document.getElementById('title').value, description: document.getElementById('desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('price').value, ownerWallet: tonConnectUI.wallet.account.address };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             location.reload();
         }
 
         function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; currentP = null; }
-        function openCreate() { document.getElementById('create-screen').style.display = 'block'; }
+        function openCreate() { if(!tonConnectUI.wallet) return alert("Привяжите кошелек!"); document.getElementById('create-screen').style.display = 'block'; }
 
         fetchLots();
     </script>

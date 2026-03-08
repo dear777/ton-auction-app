@@ -19,24 +19,24 @@ const productSchema = new mongoose.Schema({
     mediaUrl: String,
     startPrice: Number,
     currentBid: Number,
-    currency: String,
+    currency: { type: String, default: "TON" },
     endTime: Date,
     questions: [{ 
         userWallet: String, 
         text: String, 
         answer: String,
-        id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() }
+        createdAt: { type: Date, default: Date.now }
     }]
 });
 const Product = mongoose.model('Product', productSchema);
 
-// API: Все лоты
+// ПОЛУЧЕНИЕ ВСЕХ ЛОТОВ
 app.get('/api/products', async (req, res) => {
-    const products = await Product.find().sort({ endTime: -1 });
+    const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
 });
 
-// API: Создать (Блокировка изменения после публикации)
+// СОЗДАНИЕ ЛОТА (БЕЗ ПРАВА ПРАВКИ)
 app.post('/api/products', async (req, res) => {
     const product = await Product.create({
         ...req.body,
@@ -46,12 +46,33 @@ app.post('/api/products', async (req, res) => {
     res.json(product);
 });
 
-// API Форума: Удаление/Изменение вопроса
+// ФОРУМ: ДОБАВИТЬ ВОПРОС
+app.post('/api/products/:id/question', async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
+    await product.save();
+    res.json(product);
+});
+
+// ФОРУМ: УДАЛИТЬ ВОПРОС
 app.post('/api/products/:id/question/delete', async (req, res) => {
     const product = await Product.findById(req.params.id);
     product.questions = product.questions.filter(q => q._id.toString() !== req.body.qId);
     await product.save();
     res.json(product);
+});
+
+// ФОРУМ: ОТВЕТ АВТОРА
+app.post('/api/products/:id/answer', async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    const question = product.questions.id(req.body.qId);
+    if (product.ownerWallet.toLowerCase() === req.body.wallet.toLowerCase()) {
+        question.answer = req.body.answer;
+        await product.save();
+        res.json(product);
+    } else {
+        res.status(403).send("Только автор отвечает");
+    }
 });
 
 const PORT = process.env.PORT || 10000;
