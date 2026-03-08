@@ -56,11 +56,14 @@ app.post('/api/bid', async (req, res) => {
     res.json(product);
 });
 
+// АПИ ДЛЯ ЧАТА
 app.post('/api/products/:id/question', async (req, res) => {
-    const product = await Product.findById(req.params.id);
-    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
-    await product.save();
-    res.json(product);
+    try {
+        const product = await Product.findById(req.params.id);
+        product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
+        await product.save();
+        res.json(product);
+    } catch (e) { res.status(500).send(e); }
 });
 
 const PORT = process.env.PORT || 10000;
