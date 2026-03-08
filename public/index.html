@@ -1,32 +1,146 @@
-<style>
-    .badge { background: #eee; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; margin: 5px; display: inline-block; }
-    .disclaimer { font-size: 0.7em; color: #777; border-top: 1px solid #ddd; margin-top: 20px; padding-top: 10px; }
-    .q-and-a { text-align: left; background: #fafafa; padding: 10px; margin-top: 10px; border-radius: 8px; }
-</style>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TON Auction Pro</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        :root { --tg-theme-bg: #1a1c20; --tg-accent: #0088cc; --text-main: #ffffff; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; background: var(--tg-theme-bg); color: var(--text-main); margin: 0; padding: 0; overflow-x: hidden; }
+        
+        /* Шапка с кошельком */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
+        
+        .card { margin: 15px; background: #25282e; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .media-box { width: 100%; aspect-ratio: 1/1; background: #333; position: relative; }
+        .media-box img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .content { padding: 20px; }
+        h1 { margin: 0 0 10px; font-size: 1.5rem; }
+        
+        /* Плашки */
+        .badge-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+        .badge { background: rgba(0, 136, 204, 0.2); color: #00aaff; padding: 6px 12px; border-radius: 10px; font-size: 0.8rem; border: 1px solid rgba(0,136,204,0.3); }
+        
+        /* Таймер и Ставка */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .stat-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 15px; text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+        #timer { color: #ff4d4d; }
 
-<div class="card">
-    <div id="media-container"></div> <h1 id="p-title">Загрузка лота...</h1>
-    
-    <div id="badges">
-        <span class="badge" id="p-condition">Состояние: --</span>
-        <span class="badge" id="p-currency">Оплата: TON, BTC, USD</span>
+        /* Кнопка */
+        .main-btn { background: var(--tg-accent); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4); }
+        .main-btn:active { transform: scale(0.97); }
+        .main-btn:disabled { background: #444; box-shadow: none; opacity: 0.6; }
+
+        /* Обсуждение */
+        .discussion { margin-top: 25px; border-top: 1px solid #333; padding-top: 20px; }
+        .q-input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .q-input-group input { flex: 1; background: #1a1c20; border: 1px solid #444; border-radius: 10px; padding: 12px; color: white; }
+        
+        .disclaimer { font-size: 0.7rem; color: #666; margin-top: 20px; text-align: center; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="font-weight: bold; color: #0088cc;">TON AUCTION</div>
+        <div id="ton-connect"></div>
     </div>
 
-    <p id="p-desc" style="color: #666;">Описание товара появится здесь...</p>
+    <div class="card">
+        <div class="media-box">
+            <img src="https://via.placeholder.com/400?text=Digital+Art" alt="Product">
+        </div>
+        
+        <div class="content">
+            <h1 id="p-title">Лот #1: Rare Digital Art</h1>
+            
+            <div class="badge-row">
+                <span class="badge">💎 Состояние: Новое</span>
+                <span class="badge">💳 Оплата: TON, BTC, USD</span>
+            </div>
 
-    <div id="timer" style="color: red; font-weight: bold;">--:--:--</div>
-    <div id="bid-value" style="font-size: 2em; color: #0088cc;">0</div>
+            <p id="p-desc" style="color: #aaa; font-size: 0.9rem; line-height: 1.4;">
+                Эксклюзивный цифровой лот. Продавец гарантирует подлинность и качество товара.
+            </p>
 
-    <button id="bid-btn" onclick="placeBid()">Сделать ставку</button>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">До финиша</div>
+                    <div id="timer" class="stat-value">--:--:--</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Текущая цена</div>
+                    <div id="bid-value" class="stat-value">0 TON</div>
+                </div>
+            </div>
 
-    <div class="q-and-a">
-        <small>Обсуждение лота:</small>
-        <div id="questions-list"></div>
-        <input type="text" id="q-input" placeholder="Задать вопрос...">
-        <button onclick="askQuestion()" style="padding: 5px; width: auto;">?</button>
+            <button id="bid-btn" class="main-btn" onclick="placeBid()">Подключите кошелек</button>
+
+            <div class="discussion">
+                <div class="stat-label">Обсуждение лота</div>
+                <div id="questions-list" style="margin: 10px 0; font-size: 0.85rem;"></div>
+                <div class="q-input-group">
+                    <input type="text" id="q-input" placeholder="Задать вопрос продавцу...">
+                    <button onclick="askQuestion()" style="background: #333; color: white; border: none; border-radius: 10px; padding: 10px 15px;">Send</button>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                🛡️ Продавец несет полную ответственность за качество и состояние товара.
+            </div>
+        </div>
     </div>
 
-    <div class="disclaimer">
-        ⚠️ Продавец несет полную ответственность за качество и состояние товара.
-    </div>
-</div>
+    <script>
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
+
+        let currentBid = 0;
+        let endTime = null;
+
+        // Следим за кошельком
+        tonConnectUI.onStatusChange(wallet => {
+            const btn = document.getElementById('bid-btn');
+            if (wallet) {
+                btn.disabled = false;
+                btn.innerText = "Сделать ставку (+1 TON)";
+            } else {
+                btn.disabled = true;
+                btn.innerText = "Подключите кошелек";
+            }
+        });
+
+        async function loadData() {
+            try {
+                const res = await fetch('/api/auction');
+                const data = await res.json();
+                currentBid = data.currentBid;
+                endTime = new Date(data.endTime);
+                document.getElementById('bid-value').innerText = currentBid + ' TON';
+            } catch (e) { console.error("Ошибка загрузки"); }
+        }
+
+        setInterval(() => {
+            if (!endTime) return;
+            const diff = endTime - new Date();
+            if (diff <= 0) {
+                document.getElementById('timer').innerText = "ТОРГИ ЗАВЕРШЕНЫ";
+                document.getElementById('bid-btn').disabled = true;
+                return;
+            }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('timer').innerText = `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }, 1000);
+
+        loadData();
+    </script>
+</body>
+</html>
