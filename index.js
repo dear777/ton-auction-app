@@ -52,4 +52,4 @@ app.post('/api/products/:id/question', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Сервер запущен` ));
+app.listen(PORT, () => console.log(`🚀 Сервер запущен`));
