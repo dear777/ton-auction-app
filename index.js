@@ -30,13 +30,11 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
-// ПОЛУЧЕНИЕ ВСЕХ ЛОТОВ
 app.get('/api/products', async (req, res) => {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
 });
 
-// СОЗДАНИЕ ЛОТА (БЕЗ ПРАВА ПРАВКИ)
 app.post('/api/products', async (req, res) => {
     const product = await Product.create({
         ...req.body,
@@ -46,7 +44,6 @@ app.post('/api/products', async (req, res) => {
     res.json(product);
 });
 
-// ФОРУМ: ДОБАВИТЬ ВОПРОС
 app.post('/api/products/:id/question', async (req, res) => {
     const product = await Product.findById(req.params.id);
     product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
@@ -54,26 +51,5 @@ app.post('/api/products/:id/question', async (req, res) => {
     res.json(product);
 });
 
-// ФОРУМ: УДАЛИТЬ ВОПРОС
-app.post('/api/products/:id/question/delete', async (req, res) => {
-    const product = await Product.findById(req.params.id);
-    product.questions = product.questions.filter(q => q._id.toString() !== req.body.qId);
-    await product.save();
-    res.json(product);
-});
-
-// ФОРУМ: ОТВЕТ АВТОРА
-app.post('/api/products/:id/answer', async (req, res) => {
-    const product = await Product.findById(req.params.id);
-    const question = product.questions.id(req.body.qId);
-    if (product.ownerWallet.toLowerCase() === req.body.wallet.toLowerCase()) {
-        question.answer = req.body.answer;
-        await product.save();
-        res.json(product);
-    } else {
-        res.status(403).send("Только автор отвечает");
-    }
-});
-
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Сервер запущен` ));

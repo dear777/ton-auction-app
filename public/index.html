@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TON Auction Pro</title>
+    <title>TON Marketplace</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
@@ -11,26 +11,16 @@
         :root { --bg: #121418; --card: #1e2126; --accent: #0088cc; --text: #fff; --red: #ff4d4d; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
-        
-        /* Сетка 2x2 */
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; display: flex; flex-direction: column; }
-        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; cursor: pointer; }
-        
-        .card-info { padding: 10px; }
-        .card-price { color: var(--accent); font-weight: bold; font-size: 1rem; }
+        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; position: relative; }
+        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; pointer-events: none; }
+        .card-info { padding: 8px; pointer-events: none; }
+        .card-price { color: var(--accent); font-weight: bold; }
         .card-timer { color: var(--red); font-size: 0.75rem; font-weight: bold; margin-top: 4px; }
-
-        /* Экраны */
         #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        
-        /* Форум */
-        .q-item { background: #25282e; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--accent); }
-        .q-author { font-size: 0.7rem; color: #888; margin-bottom: 4px; }
-        .q-ans { margin-top: 8px; color: #00ff88; font-size: 0.9rem; padding-left: 10px; border-left: 1px solid #444; }
-
         .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; }
-        input, textarea { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 5px 0; box-sizing: border-box; }
+        input, textarea { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 8px 0; box-sizing: border-box; }
+        .q-item { background: #25282e; padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid var(--accent); }
     </style>
 </head>
 <body>
@@ -61,11 +51,10 @@
         <h2>🆕 Новый лот</h2>
         <input type="text" id="title" placeholder="Название">
         <textarea id="desc" placeholder="Описание и условия" rows="4"></textarea>
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin-bottom:10px;">📸 Загрузить фото/видео с телефона</button>
-        <div id="up-status" style="text-align:center; color:var(--accent); font-size:0.8rem; margin-bottom:10px;">Файл не выбран</div>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin-bottom:10px;">📸 Выбрать фото/видео с телефона</button>
+        <div id="up-status" style="text-align:center; color:var(--accent); font-size:0.8rem;">Файл не выбран</div>
         <input type="number" id="price" placeholder="Стартовая цена">
-        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать навсегда</button>
-        <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:#888; width:100%; margin-top:15px;">Отмена</button>
+        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать лот</button>
     </div>
 
     <button class="btn-main" onclick="openCreate()">+ Выставить товар</button>
@@ -76,19 +65,18 @@
             buttonRootId: 'ton-connect'
         });
 
-        let uploadedUrl = "";
-        let currentP = null;
+        let uploadedUrl = ""; let currentP = null;
 
         function openUpload() {
             cloudinary.openUploadWidget({
-                cloudName: 'dptgowe5b', 
-                uploadPreset: 'tonpreset', 
+                cloudName: 'dptgowe5b', // Твой Cloud Name
+                uploadPreset: 'tonpreset', // Твой Unsigned Preset
                 sources: ['local', 'camera'],
                 multiple: false
             }, (err, res) => {
                 if (!err && res.event === "success") {
                     uploadedUrl = res.info.secure_url;
-                    document.getElementById('up-status').innerText = "✅ Файл загружен!";
+                    document.getElementById('up-status').innerText = "✅ Файл готов!";
                 }
             });
         }
@@ -113,72 +101,61 @@
             const data = await res.json();
             currentP = data.find(x => x._id === id);
             
-            const myWallet = tonConnectUI.wallet?.account.address;
-            const isOwner = myWallet && myWallet.toLowerCase() === currentP.ownerWallet.toLowerCase();
-
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
                 <h1>${currentP.title}</h1>
                 <p style="color:#aaa;">${currentP.description}</p>
-                <div style="font-size:1.5rem; font-weight:bold; color:var(--accent);">Ставка: ${currentP.currentBid} TON</div>
+                <div style="font-size:1.4rem; font-weight:bold; color:var(--accent);">Цена: ${currentP.currentBid} TON</div>
             `;
             
-            renderForum(myWallet, isOwner);
+            renderForum();
             document.getElementById('detail-screen').style.display = 'block';
-            updateTimers();
+            updateDetailTimer();
         }
 
-        function renderForum(myWallet, isOwner) {
+        function renderForum() {
             document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
                 <div class="q-item">
-                    <div class="q-author">${q.userWallet.slice(0,6)}...</div>
+                    <div style="font-size:0.7rem; color:#888;">${q.userWallet.slice(0,6)}...</div>
                     <div>${q.text}</div>
-                    ${q.userWallet === myWallet ? `<div style="font-size:0.7rem; color:var(--red); margin-top:5px; cursor:pointer;" onclick="deleteQ('${q._id}')">Удалить свой вопрос</div>` : ''}
-                    ${q.answer ? `<div class="q-ans"><strong>Ответ:</strong> ${q.answer}</div>` : 
-                      (isOwner ? `<input type="text" id="ans-${q._id}" placeholder="Ваш ответ..."><button onclick="sendAns('${q._id}')">Ответить</button>` : '')}
+                    ${q.answer ? `<div style="color:#00ff88; margin-top:5px;">Ответ: ${q.answer}</div>` : ''}
                 </div>
             `).join('');
         }
 
         async function sendQuestion() {
             const text = document.getElementById('q-input').value;
-            const wallet = tonConnectUI.wallet.account.address;
-            await fetch(`/api/products/${currentP._id}/question`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet, text }) });
-            openDetails(currentP._id);
-        }
-
-        async function deleteQ(qId) {
-            await fetch(`/api/products/${currentP._id}/question/delete`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ qId }) });
-            openDetails(currentP._id);
-        }
-
-        async function sendAns(qId) {
-            const answer = document.getElementById(`ans-${qId}`).value;
-            await fetch(`/api/products/${currentP._id}/answer`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, qId, answer }) });
-            openDetails(currentP._id);
-        }
-
-        function updateTimers() {
-            document.querySelectorAll('.timer-active').forEach(t => {
-                const diff = new Date(t.dataset.time) - new Date();
-                t.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО";
+            await fetch(`/api/products/${currentP._id}/question`, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, text }) 
             });
-            if (currentP) {
-                const diff = new Date(currentP.endTime) - new Date();
-                document.getElementById('detail-timer').innerText = "⏳ До конца: " + (diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО");
-            }
-            setTimeout(updateTimers, 1000);
+            openDetails(currentP._id);
+        }
+
+        function updateDetailTimer() {
+            if (!currentP) return;
+            const diff = new Date(currentP.endTime) - new Date();
+            const timer = document.getElementById('detail-timer');
+            if (diff <= 0) { timer.innerText = "ЗАВЕРШЕНО"; return; }
+            timer.innerText = "⏳ До конца: " + new Date(diff).toISOString().substr(11, 8);
+            setTimeout(updateDetailTimer, 1000);
         }
 
         async function saveProduct() {
-            if(!uploadedUrl) return alert("Загрузите фото!");
-            const data = { title: document.getElementById('title').value, description: document.getElementById('desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('price').value, ownerWallet: tonConnectUI.wallet.account.address };
+            const data = { 
+                title: document.getElementById('title').value, 
+                description: document.getElementById('desc').value, 
+                mediaUrl: uploadedUrl, 
+                startPrice: document.getElementById('price').value, 
+                ownerWallet: tonConnectUI.wallet.account.address 
+            };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             location.reload();
         }
 
         function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; currentP = null; }
-        function openCreate() { if(!tonConnectUI.wallet) return alert("Привяжите кошелек!"); document.getElementById('create-screen').style.display = 'block'; }
+        function openCreate() { if(!tonConnectUI.wallet) return alert("Сначала привяжите кошелек!"); document.getElementById('create-screen').style.display = 'block'; }
 
         fetchLots();
     </script>
