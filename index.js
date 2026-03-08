@@ -16,57 +16,27 @@ const productSchema = new mongoose.Schema({
     ownerWallet: String,
     title: String,
     description: String,
-    mediaUrl: String, // Ссылка на файл в облаке
-    mediaType: String, // 'image' или 'video'
+    mediaUrl: String,
     startPrice: Number,
     currentBid: Number,
     currency: String,
-    highestBidder: String,
     endTime: Date,
     questions: [{ 
         userWallet: String, 
         text: String, 
         answer: String,
-        createdAt: { type: Date, default: Date.now }
+        id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() }
     }]
 });
 const Product = mongoose.model('Product', productSchema);
 
-// API для форума: Удаление вопроса
-app.delete('/api/products/:id/question/:qId', async (req, res) => {
-    const { wallet } = req.body;
-    const product = await Product.findById(req.params.id);
-    const question = product.questions.id(req.params.qId);
-    
-    if (question.userWallet === wallet) {
-        question.deleteOne();
-        await product.save();
-        res.json({ success: true });
-    } else {
-        res.status(403).send("Нет прав");
-    }
-});
-
-// API для форума: Изменение вопроса
-app.put('/api/products/:id/question/:qId', async (req, res) => {
-    const { wallet, text } = req.body;
-    const product = await Product.findById(req.params.id);
-    const question = product.questions.id(req.params.qId);
-    
-    if (question.userWallet === wallet) {
-        question.text = text;
-        await product.save();
-        res.json(product);
-    } else {
-        res.status(403).send("Нет прав");
-    }
-});
-
+// API: Все лоты
 app.get('/api/products', async (req, res) => {
     const products = await Product.find().sort({ endTime: -1 });
     res.json(products);
 });
 
+// API: Создать (Блокировка изменения после публикации)
 app.post('/api/products', async (req, res) => {
     const product = await Product.create({
         ...req.body,
@@ -76,13 +46,13 @@ app.post('/api/products', async (req, res) => {
     res.json(product);
 });
 
-// Добавление вопроса
-app.post('/api/products/:id/question', async (req, res) => {
+// API Форума: Удаление/Изменение вопроса
+app.post('/api/products/:id/question/delete', async (req, res) => {
     const product = await Product.findById(req.params.id);
-    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
+    product.questions = product.questions.filter(q => q._id.toString() !== req.body.qId);
     await product.save();
     res.json(product);
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));
