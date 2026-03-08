@@ -17,17 +17,12 @@ const productSchema = new mongoose.Schema({
     title: String,
     description: String,
     mediaUrl: String,
-    startPrice: Number,
-    currentBid: Number,
+    startPrice: Number, // Начальная цена (не меняется)
+    currentBid: Number, // Текущая цена (растет)
     currency: String,
     highestBidder: { type: String, default: "Ставок нет" },
     endTime: Date,
-    questions: [{ 
-        userWallet: String, 
-        text: String, 
-        answer: String,
-        createdAt: { type: Date, default: Date.now }
-    }]
+    questions: [{ userWallet: String, text: String, answer: String, createdAt: { type: Date, default: Date.now } }]
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -45,21 +40,20 @@ app.post('/api/products', async (req, res) => {
     res.json(product);
 });
 
-// НОВАЯ ФУНКЦИЯ: ПРИЕМ СТАВКИ
 app.post('/api/bid', async (req, res) => {
     const { productId, wallet, amount } = req.body;
+    const bidAmount = Number(amount);
     const product = await Product.findById(productId);
     const now = new Date();
 
     if (now > product.endTime) return res.status(400).json({ message: "Торги окончены" });
-    if (amount <= product.currentBid) return res.status(400).json({ message: "Ставка должна быть выше текущей" });
+    if (bidAmount <= product.currentBid) return res.status(400).json({ message: "Ставка должна быть ВЫШЕ текущей!" });
 
-    // Антиснайпер 10 минут
     if (product.endTime - now < 600000) {
         product.endTime = new Date(now.getTime() + 600000);
     }
 
-    product.currentBid = amount;
+    product.currentBid = bidAmount;
     product.highestBidder = wallet;
     await product.save();
     res.json(product);
