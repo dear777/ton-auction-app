@@ -44,13 +44,21 @@ app.post('/api/products', async (req, res) => {
 
 app.post('/api/bid', async (req, res) => {
     const { productId, wallet, amount } = req.body;
+    const bidAmount = Number(amount);
     const product = await Product.findById(productId);
     const now = new Date();
     if (now > product.endTime) return res.status(400).send("Торги окончены");
-    if (amount <= product.currentBid) return res.status(400).send("Ставка мала");
-    if (product.endTime - now < 600000) product.endTime = new Date(now.getTime() + 600000);
-    product.currentBid = amount;
+    if (bidAmount <= product.currentBid) return res.status(400).send("Ставка должна быть выше!");
+    if (product.endTime - now < 600000) { product.endTime = new Date(now.getTime() + 600000); }
+    product.currentBid = bidAmount;
     product.highestBidder = wallet;
+    await product.save();
+    res.json(product);
+});
+
+app.post('/api/products/:id/question', async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
     await product.save();
     res.json(product);
 });
