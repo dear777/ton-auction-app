@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TON Marketplace Filters</title>
+    <title>TON Marketplace Dropdown</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #121418; --card: #1e2126; --accent: #0088cc; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; }
-        .header { background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; padding: 10px 0; }
+        .header { background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; padding: 12px 15px; }
         
-        /* Стили фильтров */
-        .filter-row { display: flex; gap: 8px; overflow-x: auto; padding: 5px 15px; scrollbar-width: none; }
-        .filter-row::-webkit-scrollbar { display: none; }
-        .chip { background: #25282e; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; border: 1px solid #333; cursor: pointer; }
-        .chip.active { background: var(--accent); border-color: var(--accent); font-weight: bold; }
+        /* Выпадающее меню фильтров */
+        .filter-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        select.filter-select { background: #25282e; border: 1px solid #333; color: white; padding: 10px; border-radius: 10px; font-size: 0.85rem; outline: none; }
 
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
         .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
         .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; pointer-events: none; }
+        
         .card-info { padding: 8px; pointer-events: none; }
         .card-price { color: var(--accent); font-weight: bold; }
+        .card-timer { color: var(--red); font-size: 0.75rem; font-weight: bold; }
 
         #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
         .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; }
@@ -32,16 +32,41 @@
 <body>
 
     <div class="header">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:0 15px 10px;">
-            <div style="font-weight:bold; color:var(--accent);">MARKETPLACE</div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:bold; color:var(--accent); font-size:1.2rem;">📦 ЛОТЫ</div>
             <div id="ton-connect"></div>
         </div>
-        <div class="filter-row" id="cat-filters">
-            <div class="chip active" onclick="applyFilter('Все', this)">Все</div>
-            <div class="chip" onclick="applyFilter('Электроника', this)">📱 Электроника</div>
-            <div class="chip" onclick="applyFilter('Одежда', this)">👕 Одежда</div>
-            <div class="chip" onclick="applyFilter('Услуги', this)">🛠️ Услуги</div>
-            <div class="chip" onclick="applyFilter('Разное', this)">📦 Разное</div>
+        <div class="filter-controls">
+            <select class="filter-select" id="main-cat-filter" onchange="runFilters()">
+                <option value="Все">Все категории</option>
+                <option value="Антиквариат">🏺 Антиквариат</option>
+                <option value="Монеты">🪙 Монеты / Нумизматика</option>
+                <option value="Древность">🗿 Древности</option>
+                <option value="Живопись">🎨 Живопись / Искусство</option>
+                <option value="Марки">✉️ Марки / Филателия</option>
+                <option value="Электроника">📱 Электроника</option>
+                <option value="Одежда">👕 Одежда</option>
+                <option value="Часы">⌚ Часы</option>
+                <option value="Ювелирные изделия">💍 Ювелирные изделия</option>
+                <option value="Книги">📚 Старинные книги</option>
+                <option value="Мебель">🪑 Мебель</option>
+                <option value="Транспорт">🚗 Транспорт</option>
+                <option value="Игрушки">🧸 Коллекционные игрушки</option>
+                <option value="Музыка">🎸 Муз. инструменты</option>
+                <option value="Оружие">⚔️ Ист. оружие</option>
+                <option value="Фарфор">☕ Фарфор / Керамика</option>
+                <option value="Фотоаппараты">📷 Ретро камеры</option>
+                <option value="Документы">📜 Ист. документы</option>
+                <option value="Медали">🎖️ Медали / Ордена</option>
+                <option value="Разное">📦 Разное</option>
+            </select>
+            <select class="filter-select" id="main-cur-filter" onchange="runFilters()">
+                <option value="Все">Все валюты</option>
+                <option value="TON">TON</option>
+                <option value="USD">USD ($)</option>
+                <option value="ILS">ILS (₪)</option>
+                <option value="BTC">BTC</option>
+            </select>
         </div>
     </div>
 
@@ -49,35 +74,52 @@
 
     <div id="create-screen">
         <h2>🆕 Выставить лот</h2>
-        <input type="text" id="title" placeholder="Название">
-        <textarea id="desc" placeholder="Описание и условия" rows="3"></textarea>
+        <input type="text" id="title" placeholder="Название лота">
+        <textarea id="desc" placeholder="Описание, состояние, история лота" rows="3"></textarea>
         
-        <label style="font-size:0.8rem; color:var(--gray);">Выберите категорию:</label>
-        <select id="category">
+        <label style="font-size:0.8rem; color:var(--gray);">Выберите категорию (Обязательно):</label>
+        <select id="create-category">
+            <option value="Антиквариат">🏺 Антиквариат</option>
+            <option value="Монеты">🪙 Монеты / Нумизматика</option>
+            <option value="Древность">🗿 Древности</option>
+            <option value="Живопись">🎨 Живопись / Искусство</option>
+            <option value="Марки">✉️ Марки / Филателия</option>
             <option value="Электроника">📱 Электроника</option>
             <option value="Одежда">👕 Одежда</option>
-            <option value="Услуги">🛠️ Услуги</option>
+            <option value="Часы">⌚ Часы</option>
+            <option value="Ювелирные изделия">💍 Ювелирные изделия</option>
+            <option value="Книги">📚 Старинные книги</option>
+            <option value="Мебель">🪑 Мебель</option>
+            <option value="Транспорт">🚗 Транспорт</option>
+            <option value="Игрушки">🧸 Коллекционные игрушки</option>
+            <option value="Музыка">🎸 Муз. инструменты</option>
+            <option value="Оружие">⚔️ Ист. оружие</option>
+            <option value="Фарфор">☕ Фарфор / Керамика</option>
+            <option value="Фотоаппараты">📷 Ретро камеры</option>
+            <option value="Документы">📜 Ист. документы</option>
+            <option value="Медали">🎖️ Медали / Ордена</option>
             <option value="Разное">📦 Разное</option>
         </select>
 
         <label style="font-size:0.8rem; color:var(--gray);">Состояние:</label>
-        <select id="condition">
+        <select id="create-condition">
             <option value="Новое">💎 Новое</option>
-            <option value="Б/У">👍 Б/У</option>
+            <option value="Хорошее">👍 Б/У</option>
+            <option value="Реставрация">🛠️ После реставрации</option>
         </select>
 
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin:10px 0;">📸 Фото с телефона</button>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin:10px 0;">📸 Фото/Видео с телефона</button>
         
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <input type="number" id="price" placeholder="Цена">
-            <select id="currency">
+            <input type="number" id="create-price" placeholder="Цена">
+            <select id="create-currency">
                 <option value="TON">TON</option>
                 <option value="USD">USD</option>
                 <option value="ILS">ILS</option>
                 <option value="BTC">BTC</option>
             </select>
         </div>
-        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать</button>
+        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать лот</button>
         <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:var(--gray); width:100%; margin-top:10px;">Отмена</button>
     </div>
 
@@ -86,7 +128,7 @@
         <div id="detail-content"></div>
     </div>
 
-    <button class="btn-main" onclick="openCreate()">+ Добавить лот</button>
+    <button class="btn-main" onclick="openCreate()">+ Выставить лот</button>
 
     <script>
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -95,7 +137,6 @@
         });
 
         let allLots = [];
-        let currentFilter = 'Все';
         let uploadedUrl = "";
 
         function openUpload() {
@@ -107,25 +148,28 @@
         async function fetchLots() {
             const res = await fetch('/api/products'); 
             allLots = await res.json();
-            renderList();
+            runFilters();
+            startTimers();
         }
 
-        function applyFilter(cat, el) {
-            currentFilter = cat;
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            renderList();
-        }
+        function runFilters() {
+            const cat = document.getElementById('main-cat-filter').value;
+            const cur = document.getElementById('main-cur-filter').value;
+            
+            const filtered = allLots.filter(p => {
+                const catMatch = cat === 'Все' || p.category === cat;
+                const curMatch = cur === 'Все' || p.currency === cur;
+                return catMatch && curMatch;
+            });
 
-        function renderList() {
-            const filtered = allLots.filter(p => currentFilter === 'Все' || p.category === currentFilter);
             document.getElementById('lots-list').innerHTML = filtered.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
                     <img src="${p.mediaUrl || ''}" class="media-sq">
                     <div class="card-info">
-                        <div class="card-title">${p.title}</div>
-                        <div style="font-size:0.7rem; color:var(--gray);">${p.category} | ${p.condition}</div>
+                        <div style="font-weight:bold; font-size:0.85rem; overflow:hidden; white-space:nowrap;">${p.title}</div>
+                        <div style="font-size:0.7rem; color:var(--gray);">${p.category}</div>
                         <div class="card-price">${p.currentBid} ${p.currency}</div>
+                        <div class="card-timer timer-active" data-endtime="${p.endTime}">--:--:--</div>
                     </div>
                 </div>`).join('');
         }
@@ -135,22 +179,31 @@
                 title: document.getElementById('title').value, 
                 description: document.getElementById('desc').value, 
                 mediaUrl: uploadedUrl, 
-                category: document.getElementById('category').value,
-                condition: document.getElementById('condition').value, 
-                startPrice: document.getElementById('price').value, 
-                currency: document.getElementById('currency').value, 
+                category: document.getElementById('create-category').value,
+                condition: document.getElementById('create-condition').value, 
+                startPrice: document.getElementById('create-price').value, 
+                currency: document.getElementById('create-currency').value, 
                 ownerWallet: tonConnectUI.wallet.account.address 
             };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             location.reload();
         }
 
-        async function openDetails(id) {
+        function startTimers() {
+            setInterval(() => {
+                document.querySelectorAll('.timer-active').forEach(el => {
+                    const diff = new Date(el.dataset.endtime) - new Date();
+                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО";
+                });
+            }, 1000);
+        }
+
+        function openDetails(id) {
             const p = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `
                 <img src="${p.mediaUrl}" style="width:100%; border-radius:15px;">
                 <h2>${p.title}</h2>
-                <div style="background:#25282e; padding:10px; border-radius:10px;">Цена: ${p.currentBid} ${p.currency}</div>
+                <div style="background:#25282e; padding:15px; border-radius:10px;">${p.currentBid} ${p.currency}</div>
             `;
             document.getElementById('detail-screen').style.display = 'block';
         }
