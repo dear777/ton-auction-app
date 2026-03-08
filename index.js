@@ -6,7 +6,7 @@ const path = require('path');
 // Данные подтянутся из настроек Render (Environment Variables)
 const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
-const webAppUrl = 'https://ton-auction-bot.onrender.com'; 
+const webAppUrl = 'https://ton-auction-bot.onrender.com/'; 
 
 const bot = new TelegramBot(token, {polling: true});
 const app = express();
@@ -29,7 +29,7 @@ const auctionSchema = new mongoose.Schema({
 
 const Auction = mongoose.model('Auction', auctionSchema);
 
-// 3. КОМАНДА /START
+// 3. КОМАНДА /START (ИСПРАВЛЕНА: РАБОЧАЯ КНОПКА)
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
 
@@ -44,10 +44,14 @@ bot.onText(/\/start/, async (msg) => {
         });
     }
 
-    bot.sendMessage(chatId, `💎 Добро пожаловать на Аукцион, ${msg.from.first_name}!`, {
+    // Отправляем сообщение с РАБОЧЕЙ Inline-кнопкой
+    bot.sendMessage(chatId, `👋 Привет, ${msg.from.first_name}!\nДобро пожаловать на аукцион TON. Нажми кнопку ниже, чтобы начать торговаться!`, {
         reply_markup: {
             inline_keyboard: [[
-                { text: 'Открыть приложение', web_app: { url: webAppUrl } }
+                { 
+                    text: '💎 Перейти к торгам', 
+                    web_app: { url: webAppUrl } 
+                }
             ]]
         }
     });
