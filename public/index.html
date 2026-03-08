@@ -3,96 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TON Auction Pro</title>
+    <title>TON Marketplace</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        :root { --tg-theme-bg: #1a1c20; --tg-accent: #0088cc; --text-main: #ffffff; }
-        body { font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; background: var(--tg-theme-bg); color: var(--text-main); margin: 0; padding: 0; overflow-x: hidden; }
+        :root { --bg: #1a1c20; --card: #25282e; --accent: #0088cc; --text: #ffffff; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 90px; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #25282e; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #333; }
         
-        /* Шапка с кошельком */
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; }
-        
-        .card { margin: 15px; background: #25282e; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .media-box { width: 100%; aspect-ratio: 1/1; background: #333; position: relative; }
-        .media-box img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .content { padding: 20px; }
-        h1 { margin: 0 0 10px; font-size: 1.5rem; }
-        
-        /* Плашки */
-        .badge-row { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-        .badge { background: rgba(0, 136, 204, 0.2); color: #00aaff; padding: 6px 12px; border-radius: 10px; font-size: 0.8rem; border: 1px solid rgba(0,136,204,0.3); }
-        
-        /* Таймер и Ставка */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .stat-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 15px; text-align: center; }
-        .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
-        #timer { color: #ff4d4d; }
+        /* Стили списка */
+        .lot-card { background: var(--card); margin: 12px; padding: 15px; border-radius: 15px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .lot-card h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .price-tag { color: var(--accent); font-weight: bold; font-size: 1.2rem; }
 
-        /* Кнопка */
-        .main-btn { background: var(--tg-accent); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0, 136, 204, 0.4); }
-        .main-btn:active { transform: scale(0.97); }
-        .main-btn:disabled { background: #444; box-shadow: none; opacity: 0.6; }
+        /* Нижняя панель */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; padding: 15px; background: var(--bg); border-top: 1px solid #333; box-sizing: border-box; }
+        .btn-add { background: var(--accent); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,136,204,0.3); }
 
-        /* Обсуждение */
-        .discussion { margin-top: 25px; border-top: 1px solid #333; padding-top: 20px; }
-        .q-input-group { display: flex; gap: 10px; margin-top: 10px; }
-        .q-input-group input { flex: 1; background: #1a1c20; border: 1px solid #444; border-radius: 10px; padding: 12px; color: white; }
-        
-        .disclaimer { font-size: 0.7rem; color: #666; margin-top: 20px; text-align: center; font-style: italic; }
+        /* Экран создания */
+        #create-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; }
+        input, textarea, select { width: 100%; background: #333; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin-top: 5px; box-sizing: border-box; }
+        label { font-size: 0.8rem; color: #888; margin-top: 15px; display: block; }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <div style="font-weight: bold; color: #0088cc;">TON AUCTION</div>
+        <div style="font-size: 1.2rem; font-weight: bold;">💎 ЛОТЫ</div>
         <div id="ton-connect"></div>
     </div>
 
-    <div class="card">
-        <div class="media-box">
-            <img src="https://via.placeholder.com/400?text=Digital+Art" alt="Product">
+    <div id="lots-list">
         </div>
+
+    <div id="create-modal">
+        <h2>📦 Новый товар</h2>
+        <label>Название</label>
+        <input type="text" id="title" placeholder="Что продаете?">
         
-        <div class="content">
-            <h1 id="p-title">Лот #1: Rare Digital Art</h1>
-            
-            <div class="badge-row">
-                <span class="badge">💎 Состояние: Новое</span>
-                <span class="badge">💳 Оплата: TON, BTC, USD</span>
-            </div>
+        <label>Описание и Условия</label>
+        <textarea id="desc" rows="3" placeholder="Состояние, доставка..."></textarea>
+        
+        <label>Стартовая цена</label>
+        <input type="number" id="price" placeholder="1.0">
 
-            <p id="p-desc" style="color: #aaa; font-size: 0.9rem; line-height: 1.4;">
-                Эксклюзивный цифровой лот. Продавец гарантирует подлинность и качество товара.
-            </p>
+        <label>Валюта</label>
+        <select id="currency">
+            <option value="TON">TON</option>
+            <option value="USD">USD ($)</option>
+            <option value="ILS">Шекель (₪)</option>
+        </select>
 
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">До финиша</div>
-                    <div id="timer" class="stat-value">--:--:--</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Текущая цена</div>
-                    <div id="bid-value" class="stat-value">0 TON</div>
-                </div>
-            </div>
+        <p style="font-size: 0.7rem; color: #666; margin-top: 20px;">
+            ⚠️ Продавец несет ответственность за качество товара. Антиснайпер: 10 мин.
+        </p>
 
-            <button id="bid-btn" class="main-btn" onclick="placeBid()">Подключите кошелек</button>
+        <button class="btn-add" onclick="saveProduct()">Опубликовать</button>
+        <button onclick="closeModal()" style="background:none; border:none; color:#888; width:100%; margin-top:15px;">Отмена</button>
+    </div>
 
-            <div class="discussion">
-                <div class="stat-label">Обсуждение лота</div>
-                <div id="questions-list" style="margin: 10px 0; font-size: 0.85rem;"></div>
-                <div class="q-input-group">
-                    <input type="text" id="q-input" placeholder="Задать вопрос продавцу...">
-                    <button onclick="askQuestion()" style="background: #333; color: white; border: none; border-radius: 10px; padding: 10px 15px;">Send</button>
-                </div>
-            </div>
-
-            <div class="disclaimer">
-                🛡️ Продавец несет полную ответственность за качество и состояние товара.
-            </div>
-        </div>
+    <div class="nav-bar">
+        <button class="btn-add" onclick="checkAuthAndOpen()">+ Добавить лот</button>
     </div>
 
     <script>
@@ -101,46 +72,60 @@
             buttonRootId: 'ton-connect'
         });
 
-        let currentBid = 0;
-        let endTime = null;
-
-        // Следим за кошельком
-        tonConnectUI.onStatusChange(wallet => {
-            const btn = document.getElementById('bid-btn');
-            if (wallet) {
-                btn.disabled = false;
-                btn.innerText = "Сделать ставку (+1 TON)";
-            } else {
-                btn.disabled = true;
-                btn.innerText = "Подключите кошелек";
-            }
-        });
-
-        async function loadData() {
-            try {
-                const res = await fetch('/api/auction');
-                const data = await res.json();
-                currentBid = data.currentBid;
-                endTime = new Date(data.endTime);
-                document.getElementById('bid-value').innerText = currentBid + ' TON';
-            } catch (e) { console.error("Ошибка загрузки"); }
-        }
-
-        setInterval(() => {
-            if (!endTime) return;
-            const diff = endTime - new Date();
-            if (diff <= 0) {
-                document.getElementById('timer').innerText = "ТОРГИ ЗАВЕРШЕНЫ";
-                document.getElementById('bid-btn').disabled = true;
+        // 1. Проверка авторизации перед открытием формы
+        function checkAuthAndOpen() {
+            if (!tonConnectUI.wallet) {
+                alert("❌ Сначала привяжите кошелек вверху экрана!");
                 return;
             }
-            const h = Math.floor(diff / 3600000);
-            const m = Math.floor((diff % 3600000) / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            document.getElementById('timer').innerText = `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        }, 1000);
+            document.getElementById('create-modal').style.display = 'block';
+        }
 
-        loadData();
+        function closeModal() { document.getElementById('create-modal').style.display = 'none'; }
+
+        // 2. Загрузка списка из базы
+        async function fetchLots() {
+            const res = await fetch('/api/products');
+            const products = await res.json();
+            const container = document.getElementById('lots-list');
+            
+            if (products.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:50px; color:#555;">Пока нет активных лотов</div>';
+                return;
+            }
+
+            container.innerHTML = products.map(p => `
+                <div class="lot-card">
+                    <div>
+                        <h3>${p.title}</h3>
+                        <small style="color:#777;">Оплата: ${p.currency}</small>
+                    </div>
+                    <div class="price-tag">${p.currentBid} ${p.currency}</div>
+                </div>
+            `).join('');
+        }
+
+        // 3. Сохранение лота
+        async function saveProduct() {
+            const productData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('desc').value,
+                startPrice: document.getElementById('price').value,
+                currency: document.getElementById('currency').value,
+                ownerWallet: tonConnectUI.wallet.account.address
+            };
+
+            await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productData)
+            });
+
+            closeModal();
+            fetchLots(); // Обновляем список
+        }
+
+        fetchLots();
     </script>
 </body>
 </html>
