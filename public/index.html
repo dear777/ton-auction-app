@@ -10,94 +10,63 @@
     <style>
         :root { --bg: #121418; --card: #1e2126; --accent: #0088cc; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; }
-        
         .header { background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; padding: 10px 0; }
-        .top-row { display: flex; justify-content: space-between; align-items: center; padding: 0 15px 10px; }
         
         /* Стили фильтров */
-        .filter-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 5px 15px; scrollbar-width: none; }
-        .filter-scroll::-webkit-scrollbar { display: none; }
-        .filter-chip { background: #25282e; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; border: 1px solid #333; cursor: pointer; }
-        .filter-chip.active { background: var(--accent); border-color: var(--accent); font-weight: bold; }
+        .filter-row { display: flex; gap: 8px; overflow-x: auto; padding: 5px 15px; scrollbar-width: none; }
+        .filter-row::-webkit-scrollbar { display: none; }
+        .chip { background: #25282e; padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; border: 1px solid #333; cursor: pointer; }
+        .chip.active { background: var(--accent); border-color: var(--accent); font-weight: bold; }
 
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; }
-        
-        .card-info { padding: 8px; }
-        .card-price { color: var(--accent); font-weight: bold; font-size: 0.95rem; }
-        .card-timer { color: var(--red); font-size: 0.75rem; font-weight: bold; }
+        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
+        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; pointer-events: none; }
+        .card-info { padding: 8px; pointer-events: none; }
+        .card-price { color: var(--accent); font-weight: bold; }
 
         #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
         .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; }
         input, textarea, select { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 8px 0; box-sizing: border-box; }
-        .disclaimer-box { background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 10px; border-radius: 10px; color: #ffc107; font-size: 0.75rem; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="top-row">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0 15px 10px;">
             <div style="font-weight:bold; color:var(--accent);">MARKETPLACE</div>
             <div id="ton-connect"></div>
         </div>
-        <div class="filter-scroll" id="category-filters">
-            <div class="filter-chip active" onclick="filterBy('cat', 'Все', this)">Все</div>
-            <div class="filter-chip" onclick="filterBy('cat', 'Электроника', this)">📱 Электроника</div>
-            <div class="filter-chip" onclick="filterBy('cat', 'Одежда', this)">👕 Одежда</div>
-            <div class="filter-chip" onclick="filterBy('cat', 'Услуги', this)">🛠️ Услуги</div>
-            <div class="filter-chip" onclick="filterBy('cat', 'Транспорт', this)">🚗 Транспорт</div>
-            <div class="filter-chip" onclick="filterBy('cat', 'Другое', this)">📦 Другое</div>
-        </div>
-        <div class="filter-scroll" id="currency-filters" style="padding-top:0;">
-            <div class="filter-chip active" onclick="filterBy('cur', 'Все', this)">Все валюты</div>
-            <div class="filter-chip" onclick="filterBy('cur', 'TON', this)">TON</div>
-            <div class="filter-chip" onclick="filterBy('cur', 'USD', this)">USD ($)</div>
-            <div class="filter-chip" onclick="filterBy('cur', 'ILS', this)">ILS (₪)</div>
-            <div class="filter-chip" onclick="filterBy('cur', 'BTC', this)">BTC</div>
+        <div class="filter-row" id="cat-filters">
+            <div class="chip active" onclick="applyFilter('Все', this)">Все</div>
+            <div class="chip" onclick="applyFilter('Электроника', this)">📱 Электроника</div>
+            <div class="chip" onclick="applyFilter('Одежда', this)">👕 Одежда</div>
+            <div class="chip" onclick="applyFilter('Услуги', this)">🛠️ Услуги</div>
+            <div class="chip" onclick="applyFilter('Разное', this)">📦 Разное</div>
         </div>
     </div>
 
     <div id="lots-list"></div>
 
-    <div id="detail-screen">
-        <button onclick="closeDetails()" style="color:var(--gray); background:none; border:none; padding:10px 0;">← Назад</button>
-        <div class="disclaimer-box">⚠️ Ответственность за сохранность товара до передачи лежит полностью на продавце.</div>
-        <div id="detail-content"></div>
-        <div id="detail-timer" style="color:var(--red); font-weight:bold; margin:10px 0; font-size:1.2rem; text-align:center;"></div>
-        <div style="background: #25282e; padding: 15px; border-radius: 12px; border: 1px solid #444;">
-            <div id="highest-bidder" style="font-family:monospace; color:#00ff88; margin-bottom:10px; font-size:0.8rem;">--</div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="number" id="custom-bid-input" style="margin:0; flex:1;">
-                <div id="currency-label" style="font-weight:bold;">TON</div>
-            </div>
-            <button class="btn-main" style="position:static; width:100%; margin-top:10px;" onclick="makeCustomBid()">Сделать ставку</button>
-        </div>
-        <div style="margin-top:25px; border-top:1px solid #333; padding-top:20px;">
-            <div id="questions-list"></div>
-            <input type="text" id="q-input" placeholder="Ваш вопрос..."><button onclick="sendQuestion()">🔍</button>
-        </div>
-    </div>
-
     <div id="create-screen">
         <h2>🆕 Выставить лот</h2>
         <input type="text" id="title" placeholder="Название">
-        <textarea id="desc" placeholder="Описание" rows="3"></textarea>
+        <textarea id="desc" placeholder="Описание и условия" rows="3"></textarea>
         
-        <select id="category-select">
+        <label style="font-size:0.8rem; color:var(--gray);">Выберите категорию:</label>
+        <select id="category">
             <option value="Электроника">📱 Электроника</option>
             <option value="Одежда">👕 Одежда</option>
             <option value="Услуги">🛠️ Услуги</option>
-            <option value="Транспорт">🚗 Транспорт</option>
-            <option value="Другое">📦 Другое</option>
+            <option value="Разное">📦 Разное</option>
         </select>
 
+        <label style="font-size:0.8rem; color:var(--gray);">Состояние:</label>
         <select id="condition">
             <option value="Новое">💎 Новое</option>
-            <option value="Хорошее">👍 Б/У</option>
+            <option value="Б/У">👍 Б/У</option>
         </select>
 
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin:10px 0;">📸 Загрузить фото</button>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin:10px 0;">📸 Фото с телефона</button>
         
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
             <input type="number" id="price" placeholder="Цена">
@@ -109,6 +78,12 @@
             </select>
         </div>
         <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать</button>
+        <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:var(--gray); width:100%; margin-top:10px;">Отмена</button>
+    </div>
+
+    <div id="detail-screen">
+        <button onclick="closeDetails()" style="color:var(--gray); background:none; border:none; padding:10px 0;">← Назад</button>
+        <div id="detail-content"></div>
     </div>
 
     <button class="btn-main" onclick="openCreate()">+ Добавить лот</button>
@@ -119,10 +94,9 @@
             buttonRootId: 'ton-connect'
         });
 
-        let allProducts = [];
-        let filterCat = 'Все';
-        let filterCur = 'Все';
-        let uploadedUrl = ""; let currentP = null;
+        let allLots = [];
+        let currentFilter = 'Все';
+        let uploadedUrl = "";
 
         function openUpload() {
             cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset', sources: ['local', 'camera'], multiple: false }, (err, res) => {
@@ -132,50 +106,28 @@
 
         async function fetchLots() {
             const res = await fetch('/api/products'); 
-            allProducts = await res.json();
-            renderLots();
-            startTimers();
+            allLots = await res.json();
+            renderList();
         }
 
-        function filterBy(type, val, el) {
-            if (type === 'cat') filterCat = val;
-            if (type === 'cur') filterCur = val;
-            
-            // Визуальное переключение чипов
-            el.parentElement.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        function applyFilter(cat, el) {
+            currentFilter = cat;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
             el.classList.add('active');
-            
-            renderLots();
+            renderList();
         }
 
-        function renderLots() {
-            const container = document.getElementById('lots-list');
-            const filtered = allProducts.filter(p => {
-                const catMatch = filterCat === 'Все' || p.category === filterCat;
-                const curMatch = filterCur === 'Все' || p.currency === filterCur;
-                return catMatch && curMatch;
-            });
-
-            container.innerHTML = filtered.map(p => `
+        function renderList() {
+            const filtered = allLots.filter(p => currentFilter === 'Все' || p.category === currentFilter);
+            document.getElementById('lots-list').innerHTML = filtered.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
                     <img src="${p.mediaUrl || ''}" class="media-sq">
                     <div class="card-info">
                         <div class="card-title">${p.title}</div>
-                        <div style="font-size:0.65rem; color:var(--gray);">${p.category} | ${p.condition}</div>
+                        <div style="font-size:0.7rem; color:var(--gray);">${p.category} | ${p.condition}</div>
                         <div class="card-price">${p.currentBid} ${p.currency}</div>
-                        <div class="card-timer timer-active" data-endtime="${p.endTime}">--:--:--</div>
                     </div>
                 </div>`).join('');
-        }
-
-        async function openDetails(id) {
-            currentP = allProducts.find(x => x._id === id);
-            document.getElementById('detail-content').innerHTML = `
-                <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
-                <h2>${currentP.title}</h2>
-                <div style="font-size:1.6rem; font-weight:bold; color:var(--accent); text-align:center;">${currentP.currentBid} ${currentP.currency}</div>
-            `;
-            document.getElementById('detail-screen').style.display = 'block';
         }
 
         async function saveProduct() {
@@ -183,7 +135,7 @@
                 title: document.getElementById('title').value, 
                 description: document.getElementById('desc').value, 
                 mediaUrl: uploadedUrl, 
-                category: document.getElementById('category-select').value,
+                category: document.getElementById('category').value,
                 condition: document.getElementById('condition').value, 
                 startPrice: document.getElementById('price').value, 
                 currency: document.getElementById('currency').value, 
@@ -193,16 +145,17 @@
             location.reload();
         }
 
-        function startTimers() {
-            setInterval(() => {
-                document.querySelectorAll('.timer-active').forEach(el => {
-                    const diff = new Date(el.dataset.endtime) - new Date();
-                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО";
-                });
-            }, 1000);
+        async function openDetails(id) {
+            const p = allLots.find(x => x._id === id);
+            document.getElementById('detail-content').innerHTML = `
+                <img src="${p.mediaUrl}" style="width:100%; border-radius:15px;">
+                <h2>${p.title}</h2>
+                <div style="background:#25282e; padding:10px; border-radius:10px;">Цена: ${p.currentBid} ${p.currency}</div>
+            `;
+            document.getElementById('detail-screen').style.display = 'block';
         }
 
-        function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; fetchLots(); }
+        function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; }
         function openCreate() { document.getElementById('create-screen').style.display = 'block'; }
         fetchLots();
     </script>

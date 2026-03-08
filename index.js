@@ -18,7 +18,7 @@ const productSchema = new mongoose.Schema({
     description: String,
     mediaUrl: String,
     condition: String,
-    category: String, // НОВОЕ: Категория товара
+    category: String, // Категория из фильтров
     startPrice: Number,
     currentBid: Number,
     currency: String,
@@ -56,12 +56,5 @@ app.post('/api/bid', async (req, res) => {
     res.json(product);
 });
 
-app.post('/api/products/:id/question', async (req, res) => {
-    const product = await Product.findById(req.params.id);
-    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
-    await product.save();
-    res.json(product);
-});
-
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Сервер на порту ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Сервер запущен`));
