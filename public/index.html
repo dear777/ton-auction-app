@@ -1,105 +1,32 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TON Auction Web3</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f7f9; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: 0 auto; }
-        #bid-value { font-size: 2em; color: #0088cc; font-weight: bold; }
-        #timer { font-size: 1.2em; color: #e74c3c; margin: 15px 0; font-weight: bold; }
-        button { background: #0088cc; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.1em; cursor: pointer; width: 100%; margin-top: 10px; }
-        button:disabled { background: #ccc; }
-        #ton-connect { margin-bottom: 20px; }
-        .wallet-info { font-size: 0.8em; color: #666; margin-top: 5px; }
-    </style>
-</head>
-<body>
-    <div id="ton-connect"></div> <div class="card">
-        <h1>Лот #1: Digital Artifact</h1>
-        <div id="timer">Загрузка...</div>
-        <p>Текущая ставка:</p>
-        <div id="bid-value">-- TON</div>
-        <p>Лидер: <span id="bidder">--</span></p>
-        <button id="bid-btn" onclick="placeBid()" disabled>Сначала подключите кошелек</button>
-        <div id="wallet-address" class="wallet-info"></div>
+<style>
+    .badge { background: #eee; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; margin: 5px; display: inline-block; }
+    .disclaimer { font-size: 0.7em; color: #777; border-top: 1px solid #ddd; margin-top: 20px; padding-top: 10px; }
+    .q-and-a { text-align: left; background: #fafafa; padding: 10px; margin-top: 10px; border-radius: 8px; }
+</style>
+
+<div class="card">
+    <div id="media-container"></div> <h1 id="p-title">Загрузка лота...</h1>
+    
+    <div id="badges">
+        <span class="badge" id="p-condition">Состояние: --</span>
+        <span class="badge" id="p-currency">Оплата: TON, BTC, USD</span>
     </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        // Настройка TON Connect
-        const connector = new TonConnectSDK.TonConnect({
-            manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json'
-        });
+    <p id="p-desc" style="color: #666;">Описание товара появится здесь...</p>
 
-        let currentBid = 0;
-        let auctionEndTime = null;
-        let userWallet = null;
+    <div id="timer" style="color: red; font-weight: bold;">--:--:--</div>
+    <div id="bid-value" style="font-size: 2em; color: #0088cc;">0</div>
 
-        // Следим за состоянием кошелька
-        connector.onStatusChange(wallet => {
-            if (wallet) {
-                userWallet = wallet.account.address;
-                const shortAddr = userWallet.substring(0, 6) + '...' + userWallet.substring(userWallet.length - 4);
-                document.getElementById('wallet-address').innerText = "Кошелек: " + shortAddr;
-                document.getElementById('bid-btn').disabled = false;
-                document.getElementById('bid-btn').innerText = "Сделать ставку (+1 TON)";
-            } else {
-                userWallet = null;
-                document.getElementById('bid-btn').disabled = true;
-                document.getElementById('bid-btn').innerText = "Сначала подключите кошелек";
-            }
-        });
+    <button id="bid-btn" onclick="placeBid()">Сделать ставку</button>
 
-        async function loadData() {
-            const res = await fetch('/api/auction');
-            const data = await res.json();
-            currentBid = data.currentBid;
-            auctionEndTime = new Date(data.endTime);
-            document.getElementById('bid-value').innerText = currentBid + ' TON';
-            document.getElementById('bidder').innerText = data.highestBidder;
-        }
+    <div class="q-and-a">
+        <small>Обсуждение лота:</small>
+        <div id="questions-list"></div>
+        <input type="text" id="q-input" placeholder="Задать вопрос...">
+        <button onclick="askQuestion()" style="padding: 5px; width: auto;">?</button>
+    </div>
 
-        async function placeBid() {
-            if (!userWallet) return;
-            const nextBid = currentBid + 1;
-            const res = await fetch('/api/bid', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userWallet, // Теперь передаем адрес кошелька в базу
-                    amount: nextBid 
-                })
-            });
-            if (res.ok) loadData();
-        }
-
-        // Интерфейс кнопки подключения
-        const tonConnectUI = new TonConnectSDK.TonConnectUI({
-            connector: connector,
-            buttonRootId: 'ton-connect'
-        });
-
-        setInterval(() => {
-            if (!auctionEndTime) return;
-            const now = new Date();
-            const diff = auctionEndTime - now;
-            if (diff <= 0) {
-                document.getElementById('timer').innerText = "🔴 ТОРГИ ОКРУЖЕНЫ";
-                document.getElementById('bid-btn').disabled = true;
-                return;
-            }
-            const hours = Math.floor(diff / 3600000);
-            const mins = Math.floor((diff % 3600000) / 60000);
-            const secs = Math.floor((diff % 60000) / 1000);
-            document.getElementById('timer').innerText = `⏳ До конца: ${hours}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-        }, 1000);
-
-        loadData();
-        tg.expand();
-    </script>
-</body>
-</html>
+    <div class="disclaimer">
+        ⚠️ Продавец несет полную ответственность за качество и состояние товара.
+    </div>
+</div>

@@ -1,65 +1,61 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const mongoose = require('mongoose');
-const path = require('path');
 
 const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
-const webAppUrl = 'https://ton-auction-bot.onrender.com/'; 
 
 const bot = new TelegramBot(token, {polling: true});
 const app = express();
-
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect(mongoUri)
-  .then(() => console.log('✅ База данных подключена!'))
-  .catch(err => console.error('❌ Ошибка базы:', err));
+mongoose.connect(mongoUri).then(() => console.log('✅ База подключена!'));
 
-const auctionSchema = new mongoose.Schema({
-    lotId: String,
+// НОВАЯ СХЕМА ТОВАРА
+const productSchema = new mongoose.Schema({
+    ownerId: String,
+    title: String,
+    description: String,
+    mediaUrl: String, // Фото или Видео
+    startPrice: Number,
     currentBid: Number,
+    currency: String, // TON, USD, ILS, BTC
+    condition: String, // Новое, Б/У
     highestBidder: String,
-    endTime: Date
-});
-const Auction = mongoose.model('Auction', auctionSchema);
-
-bot.onText(/\/start/, async (msg) => {
-    const chatId = msg.chat.id;
-    let auction = await Auction.findOne({ lotId: "lot_1" });
-    if (!auction) {
-        auction = await Auction.create({
-            lotId: "lot_1",
-            currentBid: 10,
-            highestBidder: "Никто",
-            endTime: new Date(Date.now() + 24 * 60 * 60 * 1000) 
-        });
-    }
-    bot.sendMessage(chatId, `👋 Привет, ${msg.from.first_name}! Аукцион запущен. Нажми на синюю кнопку в меню, чтобы открыть приложение.`);
+    endTime: Date,
+    questions: [{ user: String, text: String, answer: String }] // Обсуждение
 });
 
-app.get('/api/auction', async (req, res) => {
-    const auction = await Auction.findOne({ lotId: "lot_1" });
-    res.json(auction);
+const Product = mongoose.model('Product', productSchema);
+
+// API: Создание лота пользователем
+app.post('/api/products', async (req, res) => {
+    const product = await Product.create({
+        ...req.body,
+        currentBid: req.body.startPrice,
+        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 часа по умолчанию
+    });
+    res.json(product);
 });
 
+// API: Ставка с Антиснайпером 10 минут
 app.post('/api/bid', async (req, res) => {
-    const { userId, amount } = req.body;
-    const auction = await Auction.findOne({ lotId: "lot_1" });
+    const { productId, userId, amount } = req.body;
+    const product = await Product.findById(productId);
     const now = new Date();
 
-    if (now > auction.endTime) return res.status(400).json({ message: "Торги окончены" });
-    if (amount <= auction.currentBid) return res.status(400).json({ message: "Ставка слишком мала" });
-
-    if (auction.endTime - now < 120000) {
-        auction.endTime = new Date(now.getTime() + 300000);
+    if (amount <= product.currentBid) return res.status(400).send("Ставка мала");
+    
+    // Антиснайпер: если до конца меньше 10 минут (600 000 мс)
+    if (product.endTime - now < 600000) {
+        product.endTime = new Date(now.getTime() + 600000); // Продлеваем на 10 мин
     }
 
-    auction.currentBid = amount;
-    auction.highestBidder = userId;
-    await auction.save();
-    res.json({ message: "Ставка принята!", auction });
+    product.currentBid = amount;
+    product.highestBidder = userId;
+    await product.save();
+    res.json(product);
 });
 
 const PORT = process.env.PORT || 10000;
