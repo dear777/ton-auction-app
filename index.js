@@ -12,6 +12,7 @@ app.use(express.static('public'));
 
 mongoose.connect(mongoUri).then(() => console.log('✅ База Marketplace подключена!'));
 
+// СХЕМА С АВТОУДАЛЕНИЕМ (TTL)
 const productSchema = new mongoose.Schema({
     ownerWallet: String,
     title: String,
@@ -24,8 +25,11 @@ const productSchema = new mongoose.Schema({
     currency: String,
     highestBidder: { type: String, default: "Ставок нет" },
     endTime: Date,
+    // Поле для удаления: через 24ч после завершения
+    expireAt: { type: Date, index: { expires: 0 } }, 
     questions: [{ userWallet: String, text: String, answer: String, createdAt: { type: Date, default: Date.now } }]
 });
+
 const Product = mongoose.model('Product', productSchema);
 
 app.get('/api/products', async (req, res) => {
@@ -34,10 +38,15 @@ app.get('/api/products', async (req, res) => {
 });
 
 app.post('/api/products', async (req, res) => {
+    const duration = 24 * 60 * 60 * 1000; // 24 часа торгов
+    const cleanupDelay = 24 * 60 * 60 * 1000; // +24 часа хранения
+    const endTime = new Date(Date.now() + duration);
+    
     const product = await Product.create({
         ...req.body,
         currentBid: req.body.startPrice,
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        endTime: endTime,
+        expireAt: new Date(endTime.getTime() + cleanupDelay)
     });
     res.json(product);
 });
@@ -47,24 +56,28 @@ app.post('/api/bid', async (req, res) => {
     const bidAmount = Number(amount);
     const product = await Product.findById(productId);
     const now = new Date();
+    
     if (now > product.endTime) return res.status(400).send("Торги окончены");
-    if (bidAmount <= product.currentBid) return res.status(400).send("Ставка должна быть выше!");
-    if (product.endTime - now < 600000) { product.endTime = new Date(now.getTime() + 600000); }
+    if (bidAmount <= product.currentBid) return res.status(400).send("Ставка мала");
+    
+    // Антиснайпер 10 минут
+    if (product.endTime - now < 600000) {
+        product.endTime = new Date(now.getTime() + 600000);
+        product.expireAt = new Date(product.endTime.getTime() + 24*60*60*1000);
+    }
+    
     product.currentBid = bidAmount;
     product.highestBidder = wallet;
     await product.save();
     res.json(product);
 });
 
-// АПИ ДЛЯ ЧАТА
 app.post('/api/products/:id/question', async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.id);
-        product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
-        await product.save();
-        res.json(product);
-    } catch (e) { res.status(500).send(e); }
+    const product = await Product.findById(req.params.id);
+    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
+    await product.save();
+    res.json(product);
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Сервер запущен`));
+app.listen(PORT, () => console.log(`🚀 Сервер запущен на ${PORT}`));
