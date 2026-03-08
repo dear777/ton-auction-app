@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            /* Эти переменные подстроятся под темную или светлую тему пользователя автоматически */
+            background: var(--tg-theme-bg-color, #ffffff); 
+            color: var(--tg-theme-text-color, #000000); 
+            text-align: center; 
+            padding: 20px; 
+        }
+        .lot-card { 
+            border: 1px solid #ccc; 
+            border-radius: 12px; 
+            padding: 15px; 
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0); 
+        }
+        button { 
+            background: #0088cc; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            margin-top: 15px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="lot-card">
+        <h2>Лот #1: Эксклюзивный NFT</h2>
+        <p>Текущая цена: <strong>25 TON</strong></p>
+        <button onclick="makeBid()">Сделать ставку</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем приложение на весь экран телефона
+
+        function makeBid() {
+            // Это стандартное окно подтверждения в стиле Telegram
+            tg.showConfirm("Вы действительно хотите поставить 26 TON?", (confirm) => {
+                if (confirm) {
+                    tg.showAlert("Ставка принята! (Пока это демонстрация)");
+                }
+            });
+        }
+    </script>
+</body>
+</html>
