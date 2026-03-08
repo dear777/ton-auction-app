@@ -19,7 +19,8 @@ const productSchema = new mongoose.Schema({
     mediaUrl: String,
     startPrice: Number,
     currentBid: Number,
-    currency: { type: String, default: "TON" },
+    currency: String,
+    highestBidder: { type: String, default: "Ставок нет" },
     endTime: Date,
     questions: [{ 
         userWallet: String, 
@@ -41,6 +42,26 @@ app.post('/api/products', async (req, res) => {
         currentBid: req.body.startPrice,
         endTime: new Date(Date.now() + 24 * 60 * 60 * 1000)
     });
+    res.json(product);
+});
+
+// НОВАЯ ФУНКЦИЯ: ПРИЕМ СТАВКИ
+app.post('/api/bid', async (req, res) => {
+    const { productId, wallet, amount } = req.body;
+    const product = await Product.findById(productId);
+    const now = new Date();
+
+    if (now > product.endTime) return res.status(400).json({ message: "Торги окончены" });
+    if (amount <= product.currentBid) return res.status(400).json({ message: "Ставка должна быть выше текущей" });
+
+    // Антиснайпер 10 минут
+    if (product.endTime - now < 600000) {
+        product.endTime = new Date(now.getTime() + 600000);
+    }
+
+    product.currentBid = amount;
+    product.highestBidder = wallet;
+    await product.save();
     res.json(product);
 });
 

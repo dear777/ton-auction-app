@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TON Marketplace</title>
+    <title>TON Marketplace Web3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
@@ -12,55 +12,65 @@
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 100px; }
         .header { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--card); border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         
-        /* Сетка 2x2 */
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; display: flex; flex-direction: column; }
+        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #333; cursor: pointer; }
         .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #000; pointer-events: none; }
         
         .card-info { padding: 8px; pointer-events: none; }
         .card-title { font-weight: bold; font-size: 0.85rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .card-price { color: var(--accent); font-weight: bold; font-size: 0.9rem; margin-top: 2px; }
+        .card-price { color: var(--accent); font-weight: bold; font-size: 0.9rem; }
         .card-timer { color: var(--red); font-size: 0.75rem; font-weight: bold; margin-top: 4px; background: rgba(255,77,77,0.1); padding: 2px 5px; border-radius: 4px; display: inline-block; }
 
         #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 500; overflow-y: auto; padding: 20px; box-sizing: border-box; }
         .btn-main { background: var(--accent); color: white; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 16px; font-weight: bold; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; }
-        input, textarea { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 8px 0; box-sizing: border-box; }
-        .q-item { background: #25282e; padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid var(--accent); }
+        input, textarea, select { width: 100%; background: #25282e; border: 1px solid #444; padding: 12px; color: white; border-radius: 10px; margin: 8px 0; box-sizing: border-box; }
+        .bid-info { background: #25282e; padding: 15px; border-radius: 12px; margin: 15px 0; border: 1px solid #333; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div style="font-weight:bold; color:var(--accent);">MARKETPLACE</div>
-        <div id="ton-connect"></div>
-    </div>
-
+    <div class="header"><div style="font-weight:bold; color:var(--accent);">MARKETPLACE</div><div id="ton-connect"></div></div>
     <div id="lots-list"></div>
 
     <div id="detail-screen">
-        <button onclick="closeDetails()" style="color:#888; background:none; border:none; padding:10px 0; cursor:pointer;">← Назад</button>
+        <button onclick="closeDetails()" style="color:#888; background:none; border:none; padding:10px 0;">← Назад</button>
         <div id="detail-content"></div>
-        <div id="detail-timer-big" style="color:var(--red); font-weight:bold; margin:15px 0; font-size:1.3rem; text-align: center;"></div>
+        <div id="detail-timer" style="color:var(--red); font-weight:bold; margin:10px 0; font-size:1.2rem; text-align:center;"></div>
         
+        <div id="bid-area" class="bid-info">
+            <div style="color:#888; font-size:0.8rem;">Текущий лидер:</div>
+            <div id="highest-bidder" style="font-size:0.9rem; margin-bottom:10px;">--</div>
+            <button id="bid-action-btn" class="btn-main" style="position:static; width:100%;" onclick="makeBid()">Сделать ставку</button>
+        </div>
+
         <div style="margin-top:25px; border-top:1px solid #333; padding-top:20px;">
-            <h3>💬 Вопросы и ответы</h3>
+            <h3>💬 Обсуждение</h3>
             <div id="questions-list"></div>
             <div style="display:flex; gap:8px; margin-top:15px;">
-                <input type="text" id="q-input" placeholder="Задать вопрос...">
-                <button onclick="sendQuestion()" style="background:var(--accent); border:none; color:white; border-radius:10px; padding:0 20px;">🔍</button>
+                <input type="text" id="q-input" placeholder="Задать вопрос..."><button onclick="sendQuestion()" style="background:var(--accent); border:none; color:white; border-radius:10px; padding:0 20px;">🔍</button>
             </div>
         </div>
     </div>
 
     <div id="create-screen">
-        <h2>🆕 Создать лот</h2>
+        <h2>🆕 Новый лот</h2>
         <input type="text" id="title" placeholder="Название">
-        <textarea id="desc" placeholder="Описание товара" rows="4"></textarea>
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin-bottom:10px;">📸 Выбрать медиа с телефона</button>
-        <div id="up-status" style="text-align:center; color:var(--accent); font-size:0.8rem; margin-bottom:10px;">Файл не выбран</div>
-        <input type="number" id="price" placeholder="Начальная цена в TON">
-        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать</button>
-        <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:#888; width:100%; margin-top:15px;">Отмена</button>
+        <textarea id="desc" placeholder="Описание и условия" rows="3"></textarea>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:10px;">📸 Загрузить медиа с телефона</button>
+        <div id="up-status" style="text-align:center; color:var(--accent); font-size:0.8rem; margin:5px 0;">Файл не выбран</div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <input type="number" id="price" placeholder="Старт цена">
+            <select id="currency">
+                <option value="TON">TON</option>
+                <option value="USD">USD ($)</option>
+                <option value="ILS">Шекель (₪)</option>
+                <option value="BTC">BTC</option>
+            </select>
+        </div>
+
+        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">Опубликовать лот</button>
+        <button onclick="document.getElementById('create-screen').style.display='none'" style="background:none; border:none; color:#888; width:100%; margin-top:10px;">Отмена</button>
     </div>
 
     <button class="btn-main" onclick="openCreate()">+ Выставить товар</button>
@@ -71,129 +81,77 @@
             buttonRootId: 'ton-connect'
         });
 
-        let uploadedUrl = ""; 
-        let currentP = null;
+        let uploadedUrl = ""; let currentP = null;
 
         function openUpload() {
-            cloudinary.openUploadWidget({
-                cloudName: 'dptgowe5b', 
-                uploadPreset: 'tonpreset', 
-                sources: ['local', 'camera'],
-                multiple: false
-            }, (err, res) => {
-                if (!err && res.event === "success") {
-                    uploadedUrl = res.info.secure_url;
-                    document.getElementById('up-status').innerText = "✅ Файл загружен!";
-                }
+            cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset', sources: ['local', 'camera'], multiple: false }, (err, res) => {
+                if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('up-status').innerText = "✅ Загружено!"; }
             });
         }
 
         async function fetchLots() {
-            const res = await fetch('/api/products');
-            const data = await res.json();
+            const res = await fetch('/api/products'); const data = await res.json();
             document.getElementById('lots-list').innerHTML = data.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
                     <img src="${p.mediaUrl || ''}" class="media-sq">
                     <div class="card-info">
                         <div class="card-title">${p.title}</div>
-                        <div class="card-price">${p.currentBid} TON</div>
+                        <div class="card-price">${p.currentBid} ${p.currency}</div>
                         <div class="card-timer timer-active" data-endtime="${p.endTime}">--:--:--</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`).join('');
             startTimers();
+        }
+
+        async function makeBid() {
+            if (!tonConnectUI.wallet) return alert("Привяжите кошелек!");
+            const nextBid = currentP.currentBid + 1;
+            const res = await fetch('/api/bid', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount: nextBid })
+            });
+            if (res.ok) openDetails(currentP._id);
+            else { const err = await res.json(); alert(err.message); }
+        }
+
+        async function openDetails(id) {
+            const res = await fetch('/api/products'); const data = await res.json();
+            currentP = data.find(x => x._id === id);
+            document.getElementById('detail-content').innerHTML = `
+                <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
+                <h1>${currentP.title}</h1>
+                <p style="color:#aaa;">${currentP.description}</p>
+                <div style="font-size:1.6rem; font-weight:bold; color:var(--accent); text-align:center;">${currentP.currentBid} ${currentP.currency}</div>
+            `;
+            document.getElementById('highest-bidder').innerText = currentP.highestBidder.slice(0,10) + "...";
+            document.getElementById('bid-action-btn').innerText = `Сделать ставку (+1 ${currentP.currency})`;
+            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `<div class="q-item"><b>${q.userWallet.slice(0,6)}...</b>: ${q.text}</div>`).join('');
+            document.getElementById('detail-screen').style.display = 'block';
         }
 
         function startTimers() {
             setInterval(() => {
-                const now = new Date().getTime();
                 document.querySelectorAll('.timer-active').forEach(el => {
-                    const end = new Date(el.dataset.endtime).getTime();
-                    const diff = end - now;
-                    if (diff <= 0) {
-                        el.innerText = "ЗАВЕРШЕНО";
-                        el.style.color = "#888";
-                    } else {
-                        const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
-                        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-                        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-                        el.innerText = `${h}:${m}:${s}`;
-                    }
+                    const diff = new Date(el.dataset.endtime) - new Date();
+                    if (diff <= 0) el.innerText = "ЗАВЕРШЕНО";
+                    else el.innerText = new Date(diff).toISOString().substr(11, 8);
                 });
-                
-                // Если открыто окно деталей, обновляем и там большой таймер
                 if (currentP) {
-                    const end = new Date(currentP.endTime).getTime();
-                    const diff = end - now;
-                    const elBig = document.getElementById('detail-timer-big');
-                    if (diff <= 0) elBig.innerText = "АУКЦИОН ЗАВЕРШЕН";
-                    else {
-                        const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
-                        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-                        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-                        elBig.innerText = `⏳ До конца: ${h}:${m}:${s}`;
-                    }
+                    const diff = new Date(currentP.endTime) - new Date();
+                    document.getElementById('detail-timer').innerText = diff > 0 ? "⏳ " + new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО";
                 }
             }, 1000);
         }
 
-        async function openDetails(id) {
-            const res = await fetch('/api/products');
-            const data = await res.json();
-            currentP = data.find(x => x._id === id);
-            
-            document.getElementById('detail-content').innerHTML = `
-                <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px; margin-bottom:15px;">
-                <h1 style="margin:0;">${currentP.title}</h1>
-                <p style="color:#aaa; line-height:1.4;">${currentP.description}</p>
-                <div style="background:#25282e; padding:15px; border-radius:12px; margin-top:10px;">
-                    <div style="font-size:0.9rem; color:#888;">Текущая ставка</div>
-                    <div style="font-size:1.8rem; font-weight:bold; color:var(--accent);">${currentP.currentBid} TON</div>
-                </div>
-            `;
-            
-            renderForum();
-            document.getElementById('detail-screen').style.display = 'block';
-        }
-
-        function renderForum() {
-            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
-                <div class="q-item">
-                    <div style="font-size:0.7rem; color:#888;">От: ${q.userWallet.slice(0,6)}...</div>
-                    <div style="margin-top:4px;">${q.text}</div>
-                    ${q.answer ? `<div style="color:#00ff88; margin-top:8px; font-size:0.9rem;">✅ Ответ автора: ${q.answer}</div>` : ''}
-                </div>
-            `).join('');
-        }
-
-        async function sendQuestion() {
-            const text = document.getElementById('q-input').value;
-            if(!text) return;
-            await fetch(`/api/products/${currentP._id}/question`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, text }) 
-            });
-            document.getElementById('q-input').value = "";
-            openDetails(currentP._id);
-        }
-
         async function saveProduct() {
-            if(!uploadedUrl) return alert("Пожалуйста, загрузите фото!");
-            const data = { 
-                title: document.getElementById('title').value, 
-                description: document.getElementById('desc').value, 
-                mediaUrl: uploadedUrl, 
-                startPrice: document.getElementById('price').value, 
-                ownerWallet: tonConnectUI.wallet.account.address 
-            };
+            const data = { title: document.getElementById('title').value, description: document.getElementById('desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('price').value, currency: document.getElementById('currency').value, ownerWallet: tonConnectUI.wallet.account.address };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             location.reload();
         }
 
         function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; currentP = null; }
         function openCreate() { if(!tonConnectUI.wallet) return alert("Привяжите кошелек!"); document.getElementById('create-screen').style.display = 'block'; }
-
         fetchLots();
     </script>
 </body>
