@@ -17,8 +17,9 @@ const productSchema = new mongoose.Schema({
     title: String,
     description: String,
     mediaUrl: String,
-    startPrice: Number, // Начальная цена (не меняется)
-    currentBid: Number, // Текущая цена (растет)
+    condition: String, // НОВОЕ: Состояние товара
+    startPrice: Number,
+    currentBid: Number,
     currency: String,
     highestBidder: { type: String, default: "Ставок нет" },
     endTime: Date,
@@ -45,14 +46,9 @@ app.post('/api/bid', async (req, res) => {
     const bidAmount = Number(amount);
     const product = await Product.findById(productId);
     const now = new Date();
-
     if (now > product.endTime) return res.status(400).json({ message: "Торги окончены" });
     if (bidAmount <= product.currentBid) return res.status(400).json({ message: "Ставка должна быть ВЫШЕ текущей!" });
-
-    if (product.endTime - now < 600000) {
-        product.endTime = new Date(now.getTime() + 600000);
-    }
-
+    if (product.endTime - now < 600000) { product.endTime = new Date(now.getTime() + 600000); }
     product.currentBid = bidAmount;
     product.highestBidder = wallet;
     await product.save();
