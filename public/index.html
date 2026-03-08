@@ -2,53 +2,136 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { 
-            font-family: sans-serif; 
-            /* Эти переменные подстроятся под темную или светлую тему пользователя автоматически */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background: var(--tg-theme-bg-color, #ffffff); 
             color: var(--tg-theme-text-color, #000000); 
             text-align: center; 
             padding: 20px; 
+            margin: 0;
         }
-        .lot-card { 
-            border: 1px solid #ccc; 
-            border-radius: 12px; 
-            padding: 15px; 
+        .card { 
+            border-radius: 16px; 
             background: var(--tg-theme-secondary-bg-color, #f0f0f0); 
+            padding: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .price-label { font-size: 0.9em; opacity: 0.7; }
+        .price { 
+            font-size: 2.5em; 
+            font-weight: bold; 
+            color: #0088cc; 
+            margin: 10px 0; 
+        }
+        .bidder { font-size: 0.9em; margin-bottom: 15px; }
+        .timer { 
+            font-weight: bold; 
+            color: #e53935; 
+            background: rgba(229, 57, 53, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 20px;
         }
         button { 
+            width: 100%; 
             background: #0088cc; 
             color: white; 
             border: none; 
-            padding: 12px 24px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            margin-top: 15px;
-            width: 100%;
+            padding: 18px; 
+            border-radius: 12px; 
+            font-size: 1.1em; 
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
         }
+        button:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
-    <div class="lot-card">
-        <h2>Лот #1: Эксклюзивный NFT</h2>
-        <p>Текущая цена: <strong>25 TON</strong></p>
-        <button onclick="makeBid()">Сделать ставку</button>
+    <div class="card">
+        <h2>Лот #1: Эксклюзивный актив</h2>
+        <div class="price-label">Текущая ставка</div>
+        <div class="price"><span id="bid-amount">...</span> TON</div>
+        <div class="bidder">Лидер: <strong id="bidder-name">Загрузка...</strong></div>
+        
+        <div class="timer">⏳ До конца: <span id="time-left">--:--:--</span></div>
+        
+        <button onclick="placeBid()">💎 Сделать ставку (+1 TON)</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем приложение на весь экран телефона
+        tg.expand(); // Разворачиваем на весь экран
 
-        function makeBid() {
-            // Это стандартное окно подтверждения в стиле Telegram
-            tg.showConfirm("Вы действительно хотите поставить 26 TON?", (confirm) => {
+        // Функция обновления данных с твоего сервера
+        async function updateData() {
+            try {
+                const res = await fetch('/api/auction');
+                const data = await res.json();
+                
+                document.getElementById('bid-amount').innerText = data.currentBid;
+                document.getElementById('bidder-name').innerText = data.highestBidder;
+                
+                // Рассчитываем время до конца
+                const end = new Date(data.endTime);
+                const now = new Date();
+                const diff = end - now;
+
+                if (diff > 0) {
+                    const hours = Math.floor(diff / 3600000);
+                    const mins = Math.floor((diff % 3600000) / 60000);
+                    const secs = Math.floor((diff % 60000) / 1000);
+                    document.getElementById('time-left').innerText = 
+                        `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    document.getElementById('time-left').innerText = "АУКЦИОН ЗАВЕРШЕН";
+                    document.querySelector('button').disabled = true;
+                    document.querySelector('button').style.background = "#ccc";
+                }
+            } catch (e) {
+                console.error("Ошибка при получении данных:", e);
+            }
+        }
+
+        // Функция отправки новой ставки
+        async function placeBid() {
+            const currentPrice = parseFloat(document.getElementById('bid-amount').innerText);
+            const newBid = currentPrice + 1;
+
+            tg.showConfirm(`Вы действительно хотите поднять ставку до ${newBid} TON?`, async (confirm) => {
                 if (confirm) {
-                    tg.showAlert("Ставка принята! (Пока это демонстрация)");
+                    try {
+                        const response = await fetch('/api/bid', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId: tg.initDataUnsafe.user?.first_name || "Аноним",
+                                amount: newBid
+                            })
+                        });
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            tg.HapticFeedback.notificationOccurred('success');
+                            updateData();
+                        } else {
+                            tg.showAlert(result.message);
+                        }
+                    } catch (e) {
+                        tg.showAlert("Ошибка соединения с сервером");
+                    }
                 }
             });
         }
+
+        // Обновляем данные каждые 3 секунды, чтобы видеть ставки других
+        setInterval(updateData, 3000);
+        updateData(); // Первый запуск сразу
     </script>
 </body>
 </html>
