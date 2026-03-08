@@ -3,10 +3,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 
-// Данные подтянутся из настроек Render (Environment Variables)
+// Переменные окружения из настроек Render
 const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
-const webAppUrl = 'https://ton-auction-bot.onrender.com/'; 
 
 const bot = new TelegramBot(token, {polling: true});
 const app = express();
@@ -14,57 +13,45 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ
+// 1. ПОДКЛЮЧЕНИЕ К БАЗЕ MONGO
 mongoose.connect(mongoUri)
-  .then(() => console.log('✅ Успешное подключение к MongoDB Atlas!'))
-  .catch(err => console.error('❌ Ошибка подключения к базе:', err));
+  .then(() => console.log('✅ База данных подключена!'))
+  .catch(err => console.error('❌ Ошибка базы (проверь IP Whitelist):', err));
 
-// 2. МОДЕЛЬ ДАННЫХ
+// 2. МОДЕЛЬ АУКЦИОНА
 const auctionSchema = new mongoose.Schema({
     lotId: String,
     currentBid: Number,
     highestBidder: String,
     endTime: Date
 });
-
 const Auction = mongoose.model('Auction', auctionSchema);
 
-// 3. КОМАНДА /START (ИСПРАВЛЕНА: РАБОЧАЯ КНОПКА)
+// 3. КОМАНДА /START (БЕЗ КНОПОК В ТЕКСТЕ)
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
 
-    // Создаем лот, если база пустая
-    let auction = await Auction.findOne({ lotId: "lot_1" });
-    if (!auction) {
-        auction = await Auction.create({
-            lotId: "lot_1",
-            currentBid: 10,
-            highestBidder: "Никто",
-            endTime: new Date(Date.now() + 24 * 60 * 60 * 1000) 
-        });
-    }
-
-    // Отправляем сообщение с РАБОЧЕЙ Inline-кнопкой
-    bot.sendMessage(chatId, `👋 Привет, ${msg.from.first_name}!\nДобро пожаловать на аукцион TON. Нажми кнопку ниже, чтобы начать торговаться!`, {
-        reply_markup: {
-            inline_keyboard: [[
-                { 
-                    text: '💎 Перейти к торгам', 
-                    web_app: { url: webAppUrl } 
-                }
-            ]]
+    try {
+        let auction = await Auction.findOne({ lotId: "lot_1" });
+        if (!auction) {
+            auction = await Auction.create({
+                lotId: "lot_1",
+                currentBid: 10,
+                highestBidder: "Никто",
+                endTime: new Date(Date.now() + 24 * 60 * 60 * 1000) 
+            });
         }
-    });
+
+        bot.sendMessage(chatId, `👋 Привет, ${msg.from.first_name}! Аукцион запущен. Нажми на синюю кнопку слева от поля ввода, чтобы открыть приложение.`);
+    } catch (err) {
+        console.error('Ошибка в /start:', err);
+    }
 });
 
-// 4. API ДЛЯ ВЗАИМОДЕЙСТВИЯ С INDEX.HTML
+// 4. API ДЛЯ ПРИЛОЖЕНИЯ
 app.get('/api/auction', async (req, res) => {
-    try {
-        const auction = await Auction.findOne({ lotId: "lot_1" });
-        res.json(auction);
-    } catch (e) {
-        res.status(500).json({ error: "Ошибка базы данных" });
-    }
+    const auction = await Auction.findOne({ lotId: "lot_1" });
+    res.json(auction);
 });
 
 app.post('/api/bid', async (req, res) => {
@@ -72,28 +59,20 @@ app.post('/api/bid', async (req, res) => {
     const auction = await Auction.findOne({ lotId: "lot_1" });
     const now = new Date();
 
-    if (now > auction.endTime) {
-        return res.status(400).json({ message: "Аукцион уже завершен!" });
-    }
+    if (now > auction.endTime) return res.status(400).json({ message: "Торги окончены" });
+    if (amount <= auction.currentBid) return res.status(400).json({ message: "Ставка слишком мала" });
 
-    if (amount <= auction.currentBid) {
-        return res.status(400).json({ message: "Ставка должна быть выше текущей!" });
-    }
-
-    // ЛОГИКА АНТИСНАЙПА (Продление на 5 минут)
-    const timeLeft = auction.endTime - now;
-    if (timeLeft < 2 * 60 * 1000) { 
-        auction.endTime = new Date(now.getTime() + 5 * 60 * 1000);
+    // Антиснайп: продление на 5 мин
+    if (auction.endTime - now < 120000) {
+        auction.endTime = new Date(now.getTime() + 300000);
     }
 
     auction.currentBid = amount;
     auction.highestBidder = userId;
     await auction.save();
-
     res.json({ message: "Ставка принята!", auction });
 });
 
-// ПОРТ ДЛЯ RENDER
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на порту ${PORT}`);
