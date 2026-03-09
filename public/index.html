@@ -1,136 +1,123 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GOLD Auction Pro</title>
+    <title>GOLD Auction Elite</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
-        [dir="rtl"] { text-align: right; }
         .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
         .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; opacity: 0.6; }
         .tab-item.active { color: var(--gold); opacity: 1; font-weight: bold; }
         .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .active-screen { display: block; }
-        .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
         .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; }
-        .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
+        .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
-        .price-label { font-size: 0.7rem; color: var(--gray); }
-        .price-val { color: var(--gold); font-weight: bold; font-size: 0.9rem; }
+        .q-bubble { background: #25282e; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 0.8rem; border-left: 3px solid var(--gold); }
     </style>
 </head>
-<body id="main-body">
+<body>
 
     <div id="screen-home" class="screen active-screen">
-        <div class="header">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-                <div id="ton-connect"></div>
-            </div>
-            <div style="display:flex; gap:15px; margin-top:10px; font-size: 0.8rem;">
-                <span onclick="setLang('ru')" style="cursor:pointer">🇷🇺 RU</span>
-                <span onclick="setLang('en')" style="cursor:pointer">🇺🇸 EN</span>
-                <span onclick="setLang('he')" style="cursor:pointer">🇮🇱 HE</span>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
+            <div id="ton-connect"></div>
         </div>
         <div id="lots-list"></div>
     </div>
 
     <div id="screen-create" class="screen">
-        <h2 id="ui-sell-title">Выставить лот</h2>
-        <input type="text" id="c-title" placeholder="Название">
-        <textarea id="c-desc" placeholder="Описание" rows="3"></textarea>
-        <select id="c-cat"><option value="Антиквариат">🏺 Антиквариат</option><option value="Монеты">🪙 Монеты</option></select>
-        <button onclick="openUpload()" id="upload-btn" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 ЗАГРУЗИТЬ ФОТО</button>
-        <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center; margin-top:5px;"></div>
-        <input type="number" id="c-price" placeholder="Стартовая цена (USDT)">
+        <h2>List an Item</h2>
+        <input type="text" id="c-title" placeholder="Title">
+        <textarea id="c-desc" placeholder="Description" rows="3"></textarea>
+        <button onclick="openUpload()" id="upload-btn" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
+        <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
+        <input type="number" id="c-price" placeholder="Starting Price (USDT)">
         
-        <div style="margin-top:15px; border:1px solid #333; padding:10px; border-radius:12px; background:#16181c;">
-            <label style="display:flex; align-items:flex-start; gap:10px; font-size:0.75rem; color:#ccc; margin-bottom:10px;">
-                <input type="checkbox" id="check-fee" style="width:20px; margin:0;"> 
-                <span>Я согласен с удержанием <b>2% комиссии</b> платформой после завершения сделки.</span>
+        <div style="margin-top:10px; background:#16181c; padding:10px; border-radius:12px; font-size:0.7rem; color:#aaa;">
+            <label style="display:flex; gap:10px; margin-bottom:8px;">
+                <input type="checkbox" id="check-fee" style="width:18px;"> I agree to 2% platform fee after sale.
             </label>
-            <label style="display:flex; align-items:flex-start; gap:10px; font-size:0.75rem; color:#ccc;">
-                <input type="checkbox" id="check-resp" style="width:20px; margin:0;"> 
-                <span>Я несу полную ответственность за сохранность и соответствие лота описанию до момента передачи.</span>
+            <label style="display:flex; gap:10px;">
+                <input type="checkbox" id="check-resp" style="width:18px;"> I am responsible for item condition.
             </label>
         </div>
-        <button class="btn-main" onclick="saveProduct()">ВЫСТАВИТЬ ЛОТ</button>
+        <button class="btn-main" onclick="saveProduct()">PUBLISH LOT</button>
     </div>
 
     <div id="screen-profile" class="screen">
-        <h2 id="ui-profile-title">Мой профиль</h2>
-        <div style="background:var(--card); padding:20px; border-radius:15px; margin-bottom:20px;">
-            <p id="ui-wallet" style="font-size:0.7rem; color:var(--gray); word-break:break-all;"></p>
-            <p id="ui-karma">Карма: 100</p>
-            <p id="ui-paid">Статус: --</p>
+        <h2>My Profile</h2>
+        <div style="background:var(--card); padding:20px; border-radius:15px; margin-bottom:15px;">
+            <p id="ui-wallet" style="font-size:0.6rem; color:var(--gray); word-break:break-all;"></p>
+            <p id="ui-paid">Status: --</p>
         </div>
-        <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px; font-weight:bold;">ВЫЙТИ ИЗ КОШЕЛЬКА</button>
+        <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px;">LOGOUT WALLET</button>
     </div>
 
     <div id="screen-detail" class="screen">
-        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:15px 0;">← НАЗАД</button>
+        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK TO FEED</button>
         <div id="detail-content"></div>
+        
         <div style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
+            <div id="detail-timer" style="color:var(--red); font-weight:bold; text-align:center; margin-bottom:10px;"></div>
             <input type="number" id="bid-input" style="text-align:center;">
-            <button class="btn-main" onclick="makeBid()">СДЕЛАТЬ СТАВКУ</button>
+            <button class="btn-main" onclick="makeBid()">PLACE BID</button>
+        </div>
+
+        <div style="margin-top:25px;">
+            <h4 style="color:var(--gold)">Discussion</h4>
+            <div id="questions-list"></div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="q-input" placeholder="Ask a question..." style="margin:0;">
+                <button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px;">SEND</button>
+            </div>
         </div>
     </div>
 
     <div class="tab-bar">
-        <div class="tab-item active" id="tab-home" onclick="showScreen('home')">🏠 ЛЕНТА</div>
-        <div class="tab-item" id="tab-create" onclick="showScreen('create')">➕ ПРОДАТЬ</div>
-        <div class="tab-item" id="tab-profile" onclick="showScreen('profile')">👤 ПРОФИЛЬ</div>
+        <div class="tab-item active" id="tab-home" onclick="showScreen('home')">🏠 FEED</div>
+        <div class="tab-item" id="tab-create" onclick="showScreen('create')">➕ SELL</div>
+        <div class="tab-item" id="tab-profile" onclick="showScreen('profile')">👤 PROFILE</div>
     </div>
 
     <script>
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', buttonRootId: 'ton-connect' });
-        let allLots = []; let currentP = null; let uploadedUrl = ""; let currentLang = 'ru';
+        let allLots = []; let currentP = null; let uploadedUrl = "";
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active-screen');
-            if(document.getElementById('tab-' + id)) document.getElementById('tab-' + id).classList.add('active');
-        }
-
-        function setLang(l) {
-            currentLang = l;
-            document.getElementById('main-body').dir = (l === 'he') ? 'rtl' : 'ltr';
-            fetchLots(); // Перерисовать лоты с новыми текстами
+            document.getElementById('tab-' + id).classList.add('active');
         }
 
         function openUpload() {
-            cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset', sources: ['local', 'camera'], multiple: false }, (err, res) => {
+            cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => {
                 if (!err && res.event === "success") {
                     uploadedUrl = res.info.secure_url;
-                    document.getElementById('upload-status').innerText = "✅ Фото загружено!";
+                    document.getElementById('upload-status').innerText = "✅ Image ready!";
                 }
             });
         }
 
-        async function logout() {
-            await tonConnectUI.disconnect();
-            location.reload();
-        }
+        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
 
         async function fetchLots() {
             const res = await fetch('/api/products'); allLots = await res.json();
             document.getElementById('lots-list').innerHTML = allLots.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
-                    <div class="card-timer" data-endtime="${p.endTime}">--:--:--</div>
+                    <div class="card-timer" data-endtime="${p.endTime}"></div>
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
                     <div style="padding:8px;">
-                        <div style="font-weight:bold; font-size:0.8rem; margin-bottom:4px;">${p.title}</div>
-                        <div class="price-label">Старт: <span class="price-val">${p.startPrice}</span></div>
-                        <div class="price-label">Сейчас: <span class="price-val" style="color:white;">${p.currentBid} USDT</span></div>
+                        <div style="font-weight:bold; font-size:0.8rem;">${p.title}</div>
+                        <div style="color:var(--gold); font-size:0.9rem;">${p.currentBid} USDT</div>
                     </div>
                 </div>`).join('');
             startTimers();
@@ -140,34 +127,60 @@
             setInterval(() => {
                 document.querySelectorAll('.card-timer').forEach(el => {
                     const diff = new Date(el.dataset.endtime) - new Date();
-                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "ЗАВЕРШЕНО";
+                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
                 });
+                if(currentP) {
+                    const diff = new Date(currentP.endTime) - new Date();
+                    document.getElementById('detail-timer').innerText = diff > 0 ? "Ends in: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+                }
             }, 1000);
-        }
-
-        async function saveProduct() {
-            if(!document.getElementById('check-fee').checked || !document.getElementById('check-resp').checked) return alert("Подтвердите условия!");
-            if(!uploadedUrl) return alert("Загрузите фото!");
-            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, category: document.getElementById('c-cat').value, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
-            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            showScreen('home'); fetchLots();
         }
 
         async function openDetails(id) {
             currentP = allLots.find(x => x._id === id);
-            document.getElementById('detail-content').innerHTML = `<img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;"><h2>${currentP.title}</h2><p>${currentP.description}</p>`;
+            document.getElementById('detail-content').innerHTML = `
+                <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
+                <h2 style="margin:15px 0 5px 0;">${currentP.title}</h2>
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <span style="color:var(--gray)">Start: ${currentP.startPrice}</span>
+                    <span style="color:var(--gold); font-weight:bold">Current: ${currentP.currentBid} USDT</span>
+                </div>
+                <p style="color:#ccc; font-size:0.9rem;">${currentP.description}</p>
+            `;
+            renderQuestions();
             showScreen('detail');
         }
 
-        async function updateProfile() {
-            if(!tonConnectUI.wallet) return;
-            const res = await fetch(`/api/user/${tonConnectUI.wallet.account.address}`);
-            const user = await res.json();
-            document.getElementById('ui-wallet').innerText = user.wallet;
-            document.getElementById('ui-paid').innerText = user.isPaid ? "VIP ДОСТУП" : "НУЖНА ОПЛАТА";
+        function renderQuestions() {
+            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
+                <div class="q-bubble">
+                    <div style="font-size:0.6rem; color:var(--gray); margin-bottom:3px;">User: ${q.userWallet.slice(0,8)}...</div>
+                    <div>${q.text}</div>
+                </div>`).join('');
         }
 
-        setInterval(updateProfile, 5000);
+        async function sendQuestion() {
+            const text = document.getElementById('q-input').value;
+            if(!text || !tonConnectUI.wallet) return;
+            await fetch(`/api/products/${currentP._id}/question`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, text }) });
+            document.getElementById('q-input').value = "";
+            const res = await fetch('/api/products'); allLots = await res.json();
+            openDetails(currentP._id);
+        }
+
+        async function saveProduct() {
+            if(!document.getElementById('check-fee').checked || !document.getElementById('check-resp').checked) return alert("Accept terms!");
+            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
+            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            showScreen('home'); fetchLots();
+        }
+
+        async function makeBid() {
+            const amount = document.getElementById('bid-input').value;
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            fetchLots(); showScreen('home');
+        }
+
         fetchLots();
     </script>
 </body>

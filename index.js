@@ -16,12 +16,13 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
+mongoose.connect(mongoUri).then(() => console.log('✅ MongoDB Connected'));
 
 const userSchema = new mongoose.Schema({
     wallet: { type: String, unique: true },
-    tgId: String, tgNick: String, lang: { type: String, default: 'ru' },
-    isPaid: { type: Boolean, default: false }, agreedToTerms: { type: Boolean, default: false }
+    tgId: String, tgNick: String,
+    isPaid: { type: Boolean, default: false },
+    agreedToTerms: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -29,10 +30,24 @@ const productSchema = new mongoose.Schema({
     ownerWallet: String, title: String, description: String, mediaUrl: String,
     category: String, condition: String, startPrice: Number, currentBid: Number,
     currency: { type: String, default: "USDT" },
-    highestBidder: { type: String, default: "Ставок нет" },
-    endTime: Date, expireAt: { type: Date, index: { expires: 0 } }
+    highestBidder: { type: String, default: "No bids" },
+    endTime: Date, expireAt: { type: Date, index: { expires: 0 } },
+    questions: [{ userWallet: String, text: String, createdAt: { type: Date, default: Date.now } }]
 });
 const Product = mongoose.model('Product', productSchema);
+
+async function checkUsdtPayments() {
+    try {
+        const res = await axios.get(`https://toncenter.com/api/v2/getJettonTransactions?address=${MY_WALLET}&limit=15`);
+        if (!res.data.result) return;
+        for (let tx of res.data.result) {
+            if (tx.amount === "5000000" && tx.comment && tx.comment.startsWith("PAY-")) {
+                await User.findOneAndUpdate({ wallet: tx.source }, { isPaid: true });
+            }
+        }
+    } catch (e) { console.error("Payment check error"); }
+}
+setInterval(checkUsdtPayments, 60000);
 
 app.get('/api/user/:wallet', async (req, res) => {
     const wallet = req.params.wallet;
@@ -62,12 +77,18 @@ app.post('/api/products', async (req, res) => {
 app.post('/api/bid', async (req, res) => {
     const { productId, wallet, amount } = req.body;
     const product = await Product.findById(productId);
-    if (new Date() > product.endTime) return res.status(400).send("Finished");
     product.currentBid = Number(amount);
     product.highestBidder = wallet;
     await product.save();
     res.json(product);
 });
 
+app.post('/api/products/:id/question', async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    product.questions.push({ userWallet: req.body.wallet, text: req.body.text });
+    await product.save();
+    res.json(product);
+});
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
