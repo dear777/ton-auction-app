@@ -10,34 +10,24 @@
     <style>
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
-        
         .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
         .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
         .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; }
         .tab-item.active { color: var(--gold); font-weight: bold; }
-        
         .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .active-screen { display: block; }
-        
         .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; margin-bottom: 10px; }
         .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.85); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; border: 1px solid var(--red); }
-        
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
-        
-        /* Сворачиваемое описание */
         .details-spoil { background: #111; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         .spoil-trigger { padding: 12px; color: var(--gold); font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
         .spoil-content { display: none; padding: 12px; font-size: 0.85rem; color: #ccc; border-top: 1px solid #222; }
-
-        /* Анимированная иконка валюты */
         .bid-wrap { position: relative; }
         .currency-anim { position: absolute; right: 15px; top: 22px; color: var(--gold); font-weight: 900; animation: bounce 1s infinite; pointer-events: none; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-
-        .q-box { background: #000; padding: 10px; border-radius: 10px; margin-bottom: 10px; border-left: 3px solid var(--gold); text-align: left; }
-        .seller-msg { border-left: 3px solid var(--red); }
+        .btn-connect-custom { background: #0088cc; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -45,23 +35,23 @@
     <div id="screen-auth" class="full-screen">
         <div style="font-size: 60px;">🏺</div>
         <h2 style="color: var(--gold);">GOLD AUCTION</h2>
-        <p>Connect your TON wallet to enter.</p>
-        <div id="ton-connect-root"></div>
+        <p>You must connect your TON wallet to continue.</p>
+        <button class="btn-main" onclick="openTonModal()">CONNECT WALLET</button>
     </div>
 
     <div id="screen-pay" class="full-screen" style="display: none;">
         <div style="font-size: 60px;">🛡️</div>
         <h2 style="color: var(--gold);">SECURE ACCESS</h2>
-        <p style="padding: 0 20px;">A fee of <b>5 USDT</b> is required to ensure a bot-free environment.</p>
+        <p>A fee of <b>5 USDT</b> is required for entry.</p>
         <button class="btn-main" onclick="payNow()">ACTIVATE (5 USDT)</button>
-        <button onclick="logout()" style="background:none; border:none; color:var(--gray); margin-top:20px;">Logout</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--gray); margin-top:20px;">Disconnect</button>
     </div>
 
     <div id="screen-home" class="screen">
         <div class="header">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-                <div id="header-connect"></div>
+                <button class="btn-connect-custom" id="header-wallet-btn" onclick="openTonModal()">CONNECT</button>
             </div>
             <select id="filter-category" onchange="fetchLots()" style="margin-top:10px;">
                 <option value="All">All Items</option>
@@ -85,13 +75,8 @@
         <input type="text" id="c-title" placeholder="Title">
         <textarea id="c-desc" placeholder="Description"></textarea>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <select id="c-cat">
-                <option value="Watch">Watch</option><option value="Coins">Coins</option><option value="Art">Art</option>
-                <option value="Jewelry">Jewelry</option><option value="Gold">Gold</option><option value="Other">Other</option>
-            </select>
-            <select id="c-curr">
-                <option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option>
-            </select>
+            <select id="c-cat"><option value="Watch">Watch</option><option value="Coins">Coins</option></select>
+            <select id="c-curr"><option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option></select>
         </div>
         <button onclick="openUpload()" style="background:#444; color:white; padding:15px; border-radius:12px; width:100%; border:none;">📸 PHOTO</button>
         <input type="number" id="c-price" placeholder="Start Price">
@@ -114,16 +99,9 @@
     <div id="screen-detail" class="screen">
         <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← FEED</button>
         <div id="detail-content"></div>
-        
         <div class="details-spoil">
             <div class="spoil-trigger" onclick="toggleSpoil()"><span>📄 DESCRIPTION</span><span>▼</span></div>
             <div id="spoil-text" class="spoil-content"></div>
-        </div>
-
-        <div id="qa-section">
-            <h4 style="color:var(--gold); border-bottom:1px solid #333; padding-bottom:5px;">DISCUSSION</h4>
-            <div id="questions-list"></div>
-            <div style="display:flex; gap:5px;"><input type="text" id="q-input" placeholder="Ask..."><button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px; font-weight:bold;">SEND</button></div>
         </div>
         <div class="bid-wrap">
             <div id="detail-timer-full" style="color:var(--red); font-weight:900; text-align:center; margin-top:15px;"></div>
@@ -140,12 +118,17 @@
     </div>
 
     <script>
+        // Инициализация без привязки к кнопке (ручное управление)
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
-            manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', 
-            buttonRootId: 'ton-connect-root' 
+            manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json'
         });
 
         let currentUser = null, allLots = [], currentP = null, uploadedUrl = "";
+
+        // Принудительное открытие модалки
+        function openTonModal() {
+            tonConnectUI.openModal();
+        }
 
         async function updateAccess() {
             const wallet = tonConnectUI.wallet;
@@ -163,7 +146,7 @@
                 document.getElementById('screen-auth').style.display = 'none';
                 document.getElementById('screen-pay').style.display = 'none';
                 document.getElementById('tab-nav').style.display = 'flex';
-                document.getElementById('header-connect').appendChild(document.getElementById('ton-connect-root'));
+                document.getElementById('header-wallet-btn').innerText = wallet.account.address.slice(0,4) + "..." + wallet.account.address.slice(-4);
                 showScreen('home'); fetchLots();
             } else {
                 document.getElementById('screen-auth').style.display = 'none';
@@ -186,14 +169,12 @@
             allLots = await res.json();
             const filter = document.getElementById('filter-category').value;
             const filtered = filter === "All" ? allLots : allLots.filter(x => x.category === filter);
-            
             document.getElementById('lots-list').innerHTML = filtered.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
                     <div class="card-timer" data-end="${p.endTime}">00:00:00</div>
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
                     <div style="padding:8px;">
                         <div style="font-weight:bold; font-size:0.75rem;">${p.title}</div>
-                        <div style="font-size:0.65rem; color:var(--gray);">Start: <b>${p.startPrice} ${p.currency}</b></div>
                         <div style="font-size:0.65rem; color:var(--gray);">Now: <b style="color:var(--gold)">${p.currentBid} ${p.currency}</b></div>
                     </div>
                 </div>`).join('');
@@ -210,29 +191,12 @@
                 </div>`;
             document.getElementById('spoil-text').innerText = currentP.description;
             document.getElementById('bid-curr-anim').innerText = currentP.currency === "BTC" ? "₿" : (currentP.currency === "TON" ? "💎" : "$");
-            renderQuestions(); showScreen('detail');
+            showScreen('detail');
         }
 
         function toggleSpoil() {
             const content = document.getElementById('spoil-text');
             content.style.display = content.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function renderQuestions() {
-            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
-                <div class="q-box ${q.isSeller ? 'seller-msg' : ''}">
-                    <div style="font-size:0.6rem; color:var(--gold); font-weight:bold;">${q.isSeller ? '★ SELLER' : q.userName}</div>
-                    <div style="font-size:0.85rem;">${q.text}</div>
-                </div>`).join('');
-        }
-
-        async function sendQuestion() {
-            const text = document.getElementById('q-input').value;
-            const res = await fetch(`/api/products/${currentP._id}/ask`, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userWallet: currentUser.wallet, userName: "User", text, isSeller: (currentUser.wallet == currentP.ownerWallet) })
-            });
-            currentP = await res.json(); renderQuestions(); document.getElementById('q-input').value = '';
         }
 
         async function makeBid() {
@@ -245,7 +209,7 @@
         setInterval(() => {
             document.querySelectorAll('.card-timer').forEach(el => {
                 const diff = new Date(el.dataset.end) - new Date();
-                if (diff <= 0) fetchLots(); // Скрываем из ленты
+                if (diff <= 0) fetchLots();
                 el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "EXPIRED";
             });
             if (currentP) {
@@ -257,13 +221,13 @@
         function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") uploadedUrl = res.info.secure_url; }); }
 
         async function saveProduct() {
-            if (!document.getElementById('check-1').checked || !document.getElementById('check-2').checked || !document.getElementById('check-3').checked) return alert("Please agree to all terms!");
+            if (!document.getElementById('check-1').checked || !document.getElementById('check-2').checked || !document.getElementById('check-3').checked) return alert("Check all boxes!");
             const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, category: document.getElementById('c-cat').value, currency: document.getElementById('c-curr').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: currentUser.wallet };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             showScreen('home'); fetchLots();
         }
 
-        function payNow() { window.location.href = `ton://transfer/${currentUser.wallet}?amount=5000000&text=PAY-AUCTION&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; }
+        function payNow() { window.location.href = `ton://transfer/${currentUser.wallet}?amount=5000000&text=PAY&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; }
         function logout() { tonConnectUI.disconnect(); location.reload(); }
 
         updateAccess();
