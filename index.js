@@ -85,4 +85,4 @@ app.post('/api/products/:id/ask', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server Running`));
+app.listen(PORT, () => console.log(`🚀 Gold Auction Server Running`));
