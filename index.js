@@ -20,10 +20,22 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const productSchema = new mongoose.Schema({
-    ownerTgId: String, title: String, description: String, mediaUrl: String,
-    category: String, currency: String,
-    startPrice: Number, currentBid: Number,
-    endTime: Date, questions: Array
+    ownerTgId: String, 
+    title: String, 
+    description: String, 
+    mediaUrl: String,
+    category: String, 
+    currency: String,
+    startPrice: Number, 
+    currentBid: Number,
+    endTime: Date, 
+    questions: [{ 
+        userTgId: String, 
+        userName: String, 
+        text: String, 
+        isSeller: Boolean, 
+        createdAt: { type: Date, default: Date.now } 
+    }]
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -54,6 +66,13 @@ app.post('/api/bid', async (req, res) => {
     const { productId, amount } = req.body;
     const product = await Product.findById(productId);
     product.currentBid = Number(amount);
+    await product.save();
+    res.json(product);
+});
+
+app.post('/api/products/:id/ask', async (req, res) => {
+    const product = await Product.findById(req.params.id);
+    product.questions.push(req.body);
     await product.save();
     res.json(product);
 });
