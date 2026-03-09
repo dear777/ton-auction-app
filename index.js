@@ -6,6 +6,7 @@ const axios = require('axios');
 const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
 
+// --- ВАШИ НАСТРОЙКИ АДМИНА ---
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
 const WHITELIST = [
     "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu",
@@ -35,7 +36,7 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
-// USDT Payment Checker
+// Проверка платежей USDT через TON API
 async function checkUsdtPayments() {
     try {
         const res = await axios.get(`https://toncenter.com/api/v2/getJettonTransactions?address=${MY_WALLET}&limit=15`);
@@ -45,10 +46,11 @@ async function checkUsdtPayments() {
                 await User.findOneAndUpdate({ wallet: tx.source }, { isPaid: true });
             }
         }
-    } catch (e) { console.error("Sync Error"); }
+    } catch (e) { console.error("Payment sync error"); }
 }
 setInterval(checkUsdtPayments, 60000);
 
+// API: Получение данных пользователя (с учетом Whitelist)
 app.get('/api/user/:wallet', async (req, res) => {
     const wallet = req.params.wallet;
     let user = await User.findOne({ wallet });
@@ -59,14 +61,16 @@ app.get('/api/user/:wallet', async (req, res) => {
     res.json(user || { karma: 0, isPaid: false });
 });
 
+// API: Товары
 app.get('/api/products', async (req, res) => res.json(await Product.find().sort({ createdAt: -1 })));
 
 app.post('/api/products', async (req, res) => {
-    const endTime = new Date(Date.now() + 86400000);
+    const endTime = new Date(Date.now() + 86400000); // 24 часа
     const product = await Product.create({ ...req.body, currentBid: req.body.startPrice, endTime, expireAt: new Date(endTime.getTime() + 86400000) });
     res.json(product);
 });
 
+// API: Ставки
 app.post('/api/bid', async (req, res) => {
     const { productId, wallet, amount } = req.body;
     const product = await Product.findById(productId);
@@ -77,6 +81,7 @@ app.post('/api/bid', async (req, res) => {
     res.json(product);
 });
 
+// API: Вопросы в лоте
 app.post('/api/products/:id/ask', async (req, res) => {
     const product = await Product.findById(req.params.id);
     product.questions.push({ ...req.body });
@@ -85,4 +90,4 @@ app.post('/api/products/:id/ask', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Gold Auction Server Running`));
+app.listen(PORT, () => console.log(`🚀 Gold Auction Engine: Online`));
