@@ -9,10 +9,10 @@
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         
-        /* ГАРАНТИЯ КЛИКАБЕЛЬНОСТИ */
-        .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; pointer-events: auto; }
+        /* ГАРАНТИЯ КЛИКАБЕЛЬНОСТИ И ВЫСОКИЙ ПРИОРИТЕТ */
+        .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
         
         .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
         .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; }
@@ -21,11 +21,28 @@
         .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .active-screen { display: block; }
         
-        .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 20px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; z-index: 10000; position: relative; display: block; }
+        .btn-main { 
+            background: linear-gradient(135deg, var(--gold), #b8860b); 
+            color: #000; 
+            border: none; 
+            width: 100%; 
+            padding: 20px; 
+            border-radius: 14px; 
+            font-weight: 900; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            position: relative; 
+            display: block;
+            pointer-events: auto !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            z-index: 10000;
+        }
+        .btn-main:active { transform: scale(0.98); background: var(--gold); }
         
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
         
-        /* Спойлер */
+        /* Спойлер описания */
         .details-spoil { background: #111; border-radius: 10px; margin: 10px 0; overflow: hidden; border: 1px solid #222; }
         .spoil-trigger { padding: 12px; color: var(--gold); font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
         .spoil-content { display: none; padding: 12px; font-size: 0.85rem; color: #ccc; border-top: 1px solid #222; }
@@ -34,6 +51,9 @@
         .bid-wrap { position: relative; margin-top: 10px; }
         .currency-anim { position: absolute; right: 20px; top: 18px; color: var(--gold); font-weight: 900; animation: bounce 1s infinite; pointer-events: none; font-size: 1.2rem; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; margin-bottom: 10px; }
+        .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.85); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; border: 1px solid var(--red); }
     </style>
 </head>
 <body>
@@ -41,8 +61,8 @@
     <div id="screen-auth" class="full-screen">
         <div style="font-size: 60px; margin-bottom: 20px;">🏺</div>
         <h2 style="color: var(--gold); font-weight: 900;">GOLD AUCTION</h2>
-        <p style="color: var(--gray); margin-bottom: 40px;">Connect wallet to enter the system.</p>
-        <button class="btn-main" id="force-connect-btn">CONNECT WALLET</button>
+        <p style="color: var(--gray); margin-bottom: 40px;">Elite Trading Environment.<br>Connect Wallet to proceed.</p>
+        <button class="btn-main" id="real-connect-btn" onclick="startConnect()">CONNECT WALLET</button>
     </div>
 
     <div id="screen-pay" class="full-screen" style="display: none;">
@@ -56,7 +76,7 @@
     <div id="screen-home" class="screen">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:var(--card); padding:10px; border-radius:12px;">
             <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-            <button onclick="forceConnect()" style="background:none; border:1px solid var(--gold); color:var(--gold); padding:5px 10px; border-radius:8px; font-size:0.7rem;">WALLET</button>
+            <button onclick="startConnect()" style="background:none; border:1px solid var(--gold); color:var(--gold); padding:5px 10px; border-radius:8px; font-size:0.7rem;">WALLET</button>
         </div>
         <select id="filter-category" onchange="fetchLots()">
             <option value="All">All Categories</option>
@@ -79,8 +99,13 @@
         <input type="text" id="c-title" placeholder="Item Title">
         <textarea id="c-desc" placeholder="Detailed Description"></textarea>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <select id="c-cat"><option value="Watch">Watch</option><option value="Coins">Coins</option><option value="Other">Other</option></select>
-            <select id="c-curr"><option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option></select>
+            <select id="c-cat">
+                <option value="Watch">Watch</option><option value="Coins">Coins</option><option value="Art">Art</option>
+                <option value="Jewelry">Jewelry</option><option value="Gold">Gold</option><option value="Other">Other</option>
+            </select>
+            <select id="c-curr">
+                <option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option>
+            </select>
         </div>
         <button onclick="openUpload()" style="background:#444; color:white; padding:15px; border-radius:12px; width:100%; border:none;">📸 PHOTO</button>
         <input type="number" id="c-price" placeholder="Starting Price">
@@ -95,7 +120,7 @@
     <div id="screen-profile" class="screen">
         <h2>My Profile</h2>
         <div style="background:var(--card); padding:20px; border-radius:15px; text-align: left;">
-            <p style="font-size:0.7rem; color:var(--gray);">WALLET:</p>
+            <p style="font-size:0.7rem; color:var(--gray);">CONNECTED WALLET:</p>
             <p id="ui-wallet" style="font-size:0.75rem; word-break:break-all; color:var(--gold);"></p>
             <p>Karma: <b style="color:var(--gold)">100</b></p>
         </div>
@@ -109,9 +134,9 @@
             <div class="spoil-trigger" onclick="toggleSpoil()"><span>📄 DESCRIPTION</span><span>▼</span></div>
             <div id="spoil-text" class="spoil-content"></div>
         </div>
-        <div id="detail-timer-full" style="color:var(--red); font-weight:900; text-align:center; margin-top:20px;"></div>
+        <div id="detail-timer-full" style="color:var(--red); font-weight:900; text-align:center; margin-top:20px; font-size: 1.2rem;"></div>
         <div class="bid-wrap">
-            <input type="number" id="bid-input" style="text-align:center; font-size:1.8rem; height: 60px;">
+            <input type="number" id="bid-input" style="text-align:center; font-size:1.8rem; height: 70px;">
             <span id="bid-curr-anim" class="currency-anim"></span>
             <button class="btn-main" onclick="makeBid()">PLACE BID</button>
         </div>
@@ -124,19 +149,23 @@
     </div>
 
     <script>
+        // Инициализация TonConnect
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
             manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json'
         });
 
         let currentUser = null, allLots = [], currentP = null, uploadedUrl = "";
 
-        // ЖЕСТКИЙ ОБРАБОТЧИК КЛИКА
-        document.getElementById('force-connect-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            tonConnectUI.openModal();
-        });
+        // ФУНКЦИЯ КОННЕКТА
+        async function startConnect() {
+            try {
+                await tonConnectUI.openModal();
+            } catch (e) {
+                alert("Please check your wallet connection.");
+            }
+        }
 
-        async function updateAccess() {
+        async function checkAccess() {
             const wallet = tonConnectUI.wallet;
             if (!wallet) {
                 document.getElementById('screen-auth').style.display = 'flex';
@@ -159,7 +188,7 @@
             }
         }
 
-        tonConnectUI.onStatusChange(updateAccess);
+        tonConnectUI.onStatusChange(checkAccess);
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
@@ -176,10 +205,11 @@
             const filtered = filter === "All" ? allLots : allLots.filter(x => x.category === filter);
             document.getElementById('lots-list').innerHTML = filtered.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
+                    <div class="card-timer" data-end="${p.endTime}">00:00:00</div>
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
                     <div style="padding:10px;">
                         <b style="font-size:0.8rem;">${p.title}</b><br>
-                        <span style="color:var(--gold); font-size:0.7rem;">${p.currentBid} ${p.currency}</span>
+                        <span style="color:var(--gold); font-size:0.7rem;">Now: ${p.currentBid} ${p.currency}</span>
                     </div>
                 </div>`).join('');
         }
@@ -188,7 +218,7 @@
             currentP = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
-                <h2>${currentP.title}</h2>
+                <h2 style="margin:15px 0;">${currentP.title}</h2>
                 <div style="display:flex; justify-content:space-between; background:#222; padding:15px; border-radius:12px;">
                     <div><span style="font-size:0.7rem;">START</span><br><b>${currentP.startPrice} ${currentP.currency}</b></div>
                     <div style="text-align:right;"><span style="font-size:0.7rem;">CURRENT</span><br><b style="color:var(--gold); font-size:1.2rem;">${currentP.currentBid} ${currentP.currency}</b></div>
@@ -203,16 +233,39 @@
             content.style.display = content.style.display === 'block' ? 'none' : 'block';
         }
 
+        async function makeBid() {
+            const amount = Number(document.getElementById('bid-input').value);
+            if (amount <= currentP.currentBid) return alert("Higher bid needed!");
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, amount }) });
+            fetchLots(); showScreen('home');
+        }
+
+        setInterval(() => {
+            document.querySelectorAll('.card-timer').forEach(el => {
+                const diff = new Date(el.dataset.end) - new Date();
+                if (diff <= 0) fetchLots();
+                el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "EXPIRED";
+            });
+            if (currentP) {
+                const diff = new Date(currentP.endTime) - new Date();
+                const timerEl = document.getElementById('detail-timer-full');
+                if (timerEl) timerEl.innerText = diff > 0 ? "ENDING IN: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+            }
+        }, 1000);
+
+        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") uploadedUrl = res.info.secure_url; }); }
+        
         async function saveProduct() {
-            if (!document.getElementById('check-1').checked || !document.getElementById('check-2').checked || !document.getElementById('check-3').checked) return alert("Check boxes!");
+            if (!document.getElementById('check-1').checked || !document.getElementById('check-2').checked || !document.getElementById('check-3').checked) return alert("Accept terms!");
             const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, category: document.getElementById('c-cat').value, currency: document.getElementById('c-curr').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: currentUser.wallet };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             showScreen('home'); fetchLots();
         }
 
-        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") uploadedUrl = res.info.secure_url; }); }
+        function payNow() { window.location.href = `ton://transfer/${currentUser.wallet}?amount=5000000&text=PAY&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; }
         function logout() { tonConnectUI.disconnect(); location.reload(); }
-        updateAccess();
+
+        checkAccess();
     </script>
 </body>
 </html>
