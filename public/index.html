@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GOLD Auction Pro</title>
+    <title>GOLD Auction Global</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
@@ -12,16 +12,14 @@
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 110px; }
         [dir="rtl"] { text-align: right; }
         .header { background: var(--card); border-bottom: 1px solid #333; padding: 12px; position: sticky; top:0; z-index:100; }
-        .filter-select { background: #1f2229; border: 1px solid #333; color: white; padding: 10px; border-radius: 12px; width: 100%; margin-top: 8px; font-size: 0.85rem; }
+        .lang-btn { background: #1f2229; color: white; border: 1px solid #333; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+        .lang-btn.active { border-color: var(--gold); color: var(--gold); }
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid #2d2f36; cursor: pointer; }
-        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; pointer-events: none; }
+        .lot-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid #2d2f36; }
+        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 18px; font-weight: 900; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; text-transform: uppercase; }
-        #reg-screen, #karma-screen, #detail-screen, #create-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; padding: 25px; box-sizing: border-box; overflow-y: auto; }
-        input, textarea, select { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
-        .disclaimer { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); padding: 10px; border-radius: 12px; color: var(--gold); font-size: 0.75rem; text-align: center; margin-bottom: 15px; }
-        .q-item-user { background: #25282e; padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid #555; }
-        .q-item-owner { background: #1e293b; padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid var(--gold); }
+        #reg-screen, #karma-screen, #detail-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; padding: 25px; box-sizing: border-box; overflow-y: auto; }
+        input, select { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
     </style>
 </head>
 <body id="main-body">
@@ -29,82 +27,47 @@
     <div id="reg-screen">
         <h2 id="reg-title"></h2>
         <p id="reg-desc" style="font-size:0.85rem; color:var(--gray);"></p>
-        <input type="text" id="reg-tg-id" placeholder="Telegram User ID">
+        <input type="text" id="reg-tg-id" placeholder="Telegram ID">
         <input type="text" id="reg-tg-nick" placeholder="@username">
         <div style="background:#16181c; padding:15px; border-radius:12px; margin:15px 0;">
             <b id="sub-title"></b>
             <p id="sub-desc" style="font-size:0.75rem; color:var(--gray); margin:5px 0;"></p>
-            <button onclick="payMembership()" style="width:100%; background:var(--gold); border:none; padding:12px; border-radius:10px; font-weight:bold;">ОПЛАТИТЬ 5 USDT</button>
+            <button onclick="payMembership()" style="width:100%; background:var(--gold); border:none; padding:12px; border-radius:10px; font-weight:bold;">PAY 5 USDT</button>
         </div>
-        <button class="btn-main" style="position:static; width:100%;" onclick="submitReg()">Продолжить</button>
+        <button class="btn-main" style="position:static; width:100%;" onclick="submitReg()">OK</button>
     </div>
 
     <div id="karma-screen">
         <h2 id="karma-title"></h2>
-        <div id="karma-legal" style="font-size:0.8rem; background:#16181c; padding:15px; border-radius:12px; border:1px solid #333; margin-bottom:15px;"></div>
-        <label style="display:flex; align-items:center; gap:10px; font-size:0.85rem;">
-            <input type="checkbox" id="karma-check" style="width:20px;"> <span id="karma-agree"></span>
-        </label>
-        <button class="btn-main" style="position:static; width:100%; margin-top:20px;" onclick="acceptKarma()">ПОДТВЕРДИТЬ</button>
+        <div id="karma-legal" style="font-size:0.8rem; background:#16181c; padding:15px; border-radius:12px; margin-bottom:15px;"></div>
+        <label><input type="checkbox" id="karma-check"> <span id="karma-agree"></span></label>
+        <button class="btn-main" style="position:static; width:100%; margin-top:20px;" onclick="acceptKarma()">ACCEPT</button>
     </div>
 
     <div class="header">
-        <div style="display:flex; gap:5px; margin-bottom:10px;">
-            <button class="btn-lang" onclick="setLang('ru')">RU</button>
-            <button class="btn-lang" onclick="setLang('en')">EN</button>
-            <button class="btn-lang" onclick="setLang('he')">HE</button>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="lang-btn" id="btn-ru" onclick="setLang('ru')">RU</button>
+            <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+            <button class="lang-btn" id="btn-he" onclick="setLang('he')">HE</button>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
             <div id="ton-connect"></div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <select class="filter-select" id="cat-filter" onchange="runFilters()"></select>
-            <select class="filter-select" id="cur-filter" onchange="runFilters()"></select>
-        </div>
     </div>
 
     <div id="lots-list"></div>
-
     <div id="detail-screen">
         <button onclick="closeDetails()" style="color:var(--gray); background:none; border:none; padding:15px 0;">← BACK</button>
-        <div class="disclaimer">🛡️ Ответственность за товар лежит на продавце.</div>
         <div id="detail-content"></div>
-        <div id="detail-timer" style="color:var(--red); font-weight:bold; margin:15px 0; font-size:1.3rem; text-align:center;"></div>
-        <div style="background: #16181c; padding: 20px; border-radius: 20px;">
-            <div id="bidder-val" style="font-size:0.75rem; color:var(--gold); text-align:center; margin-bottom:10px;"></div>
-            <div style="display:flex; gap:10px;">
-                <input type="number" id="bid-input" style="margin:0; flex:1; text-align:center;">
-                <button onclick="makeBid()" style="background:var(--gold); border:none; border-radius:12px; padding:0 20px; font-weight:bold;">OK</button>
-            </div>
-        </div>
-        <div style="margin-top:20px;">
-            <div id="questions-list"></div>
-            <div style="display:flex; gap:5px;"><input type="text" id="q-input" style="margin:0;"><button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px;">🔍</button></div>
-        </div>
     </div>
-
-    <div id="create-screen">
-        <h2>🆕 NEW LOT</h2>
-        <input type="text" id="c-title" placeholder="Title">
-        <textarea id="c-desc" placeholder="Description" rows="3"></textarea>
-        <select id="c-cat"></select>
-        <select id="c-cond"></select>
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <input type="number" id="c-price" placeholder="Price">
-            <select id="c-cur"></select>
-        </div>
-        <button class="btn-main" onclick="saveProduct()" style="position:static; width:100%; margin-top:20px;">PUBLISH</button>
-    </div>
-
     <button class="btn-main" onclick="openCreate()">+ SELL ITEM</button>
 
     <script>
         const i18n = {
-            ru: { regTitle: "Регистрация", regDesc: "ID Телеграм нужен для связи после победы.", subTitle: "Взнос 5 USDT", subDesc: "Членский взнос отсекает ботов и развивает проект.", karmaTitle: "Правила Кармы", karmaLegal: "Настоящим вы соглашаетесь, что обман или отказ от выкупа ведет к потере рейтинга и бану.", karmaAgree: "Я согласен", cats: ["Антиквариат", "Монеты", "Разное"] },
-            en: { regTitle: "Registration", regDesc: "Telegram ID is for contact after winning.", subTitle: "Fee 5 USDT", subDesc: "Membership fee filters bots and grows the project.", karmaTitle: "Karma Rules", karmaLegal: "You agree that scam or refusal to buy leads to rating loss and ban.", karmaAgree: "I agree", cats: ["Antiques", "Coins", "Other"] },
-            he: { regTitle: "הרשמה", regDesc: "מזהה טלגרם לצורך תקשורת לאחר הזכייה.", subTitle: "דמי חבר 5 USDT", subDesc: "התשלום מסנן בוטים ומפתח את הפרויקט.", karmaTitle: "חוקי קארמה", karmaLegal: "הנך מסכים כי מרמה או סירוב לרכישה יובילו לאובדן דירוג וחסימה.", karmaAgree: "אני מסכים", cats: ["עתיקות", "מטבעות", "אחר"] }
+            ru: { regTitle: "Регистрация", regDesc: "ID Телеграм нужен для связи.", subTitle: "Взнос 5 USDT", subDesc: "Членский взнос против ботов.", karmaTitle: "Правила Кармы", karmaLegal: "Вы соглашаетесь с правилами честной торговли.", karmaAgree: "Я согласен" },
+            en: { regTitle: "Registration", regDesc: "Telegram ID for contact.", subTitle: "Fee 5 USDT", subDesc: "Membership fee against bots.", karmaTitle: "Karma Rules", karmaLegal: "You agree to fair trading rules.", karmaAgree: "I agree" },
+            he: { regTitle: "הרשמה", regDesc: "מזהה טלגרם ליצירת קשר.", subTitle: "דמי חבר 5 USDT", subDesc: "התשלום מסנן בוטים.", karmaTitle: "חוקי קארמה", karmaLegal: "הנך מסכים לכללי הסחר ההוגן.", karmaAgree: "אני מסכים" }
         };
 
         let currentLang = 'ru';
@@ -125,10 +88,6 @@
             document.getElementById('karma-title').innerText = t.karmaTitle;
             document.getElementById('karma-legal').innerText = t.karmaLegal;
             document.getElementById('karma-agree').innerText = t.karmaAgree;
-            
-            const catHtml = t.cats.map(c => `<option value="${c}">${c}</option>`).join('');
-            document.getElementById('cat-filter').innerHTML = `<option value="Все">Все</option>` + catHtml;
-            document.getElementById('c-cat').innerHTML = catHtml;
         }
 
         async function checkUser() {
@@ -136,22 +95,20 @@
             const res = await fetch(`/api/user/${tonConnectUI.wallet.account.address}`);
             const user = await res.json();
             if (!user.tgId) document.getElementById('reg-screen').style.display = 'block';
-            else if (!user.agreedToTerms) document.getElementById('karma-screen').style.display = 'block';
+            else if (user.isPaid && !user.agreedToTerms) document.getElementById('karma-screen').style.display = 'block';
         }
 
         async function payMembership() {
             const wallet = tonConnectUI.wallet.account.address;
             const comment = "PAY-" + wallet.slice(-6);
-            const amount = 5000000; // 5 USDT
-            const usdt = "EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1";
             const my = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-            window.location.href = `ton://transfer/${my}?amount=${amount}&text=${comment}&jetton=${usdt}`;
+            const usdt = "EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1";
+            window.location.href = `ton://transfer/${my}?amount=5000000&text=${comment}&jetton=${usdt}`;
         }
 
         async function submitReg() {
             const data = { wallet: tonConnectUI.wallet.account.address, tgId: document.getElementById('reg-tg-id').value, tgNick: document.getElementById('reg-tg-nick').value };
             await fetch('/api/user/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            document.getElementById('reg-screen').style.display = 'none';
             checkUser();
         }
 
@@ -164,16 +121,8 @@
         async function fetchLots() {
             const res = await fetch('/api/products');
             const data = await res.json();
-            document.getElementById('lots-list').innerHTML = data.map(p => `
-                <div class="lot-card" onclick="openDetails('${p._id}')">
-                    <img src="${p.mediaUrl}" class="media-sq">
-                    <div style="padding:10px;"><b>${p.title}</b><br><span style="color:var(--gold);">${p.currentBid} ${p.currency}</span></div>
-                </div>`).join('');
+            document.getElementById('lots-list').innerHTML = data.map(p => `<div class="lot-card">...</div>`).join('');
         }
-
-        function openDetails(id) { document.getElementById('detail-screen').style.display = 'block'; }
-        function closeDetails() { document.getElementById('detail-screen').style.display = 'none'; }
-        function openCreate() { document.getElementById('create-screen').style.display = 'block'; }
 
         setLang('ru');
         setInterval(checkUser, 5000);
