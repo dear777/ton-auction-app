@@ -7,51 +7,49 @@ app.use(express.static('public'));
 
 const mongoUri = process.env.MONGO_URI; 
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-const WHITELIST_WALLETS = ["UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu"];
 
-mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
+// Список тех, кто "купил" подписку (Whitelist для Админа)
+const PAID_USERS = [
+    "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu",
+    "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_"
+];
+
+mongoose.connect(mongoUri).then(() => console.log('✅ Gold Auction DB Connected'));
 
 const userSchema = new mongoose.Schema({
-    tgId: { type: String, unique: true },
-    wallet: String,
+    wallet: { type: String, unique: true },
     isPaid: { type: Boolean, default: false },
     karma: { type: Number, default: 100 }
 });
 const User = mongoose.model('User', userSchema);
 
 const productSchema = new mongoose.Schema({
-    ownerTgId: String, 
-    title: String, 
-    description: String, 
-    mediaUrl: String,
-    category: String, 
-    currency: String,
-    startPrice: Number, 
-    currentBid: Number,
+    ownerWallet: String, title: String, description: String, mediaUrl: String,
+    category: String, currency: String,
+    startPrice: Number, currentBid: Number,
     endTime: Date, 
-    questions: [{ 
-        userTgId: String, 
-        userName: String, 
-        text: String, 
-        isSeller: Boolean, 
-        createdAt: { type: Date, default: Date.now } 
-    }]
+    questions: [{ userWallet: String, userName: String, text: String, isSeller: Boolean, createdAt: { type: Date, default: Date.now } }]
 });
 const Product = mongoose.model('Product', productSchema);
 
-app.post('/api/auth', async (req, res) => {
-    const { tgId, wallet } = req.body;
-    let user = await User.findOne({ tgId });
-    const isVip = WHITELIST_WALLETS.includes(wallet);
-    if (!user) {
-        user = await User.create({ tgId, wallet, isPaid: isVip, karma: 100 });
-    } else if (isVip) {
-        user.isPaid = true; await user.save();
+// Проверка доступа (Сравнение со списком PAID_USERS)
+app.get('/api/user/:wallet', async (req, res) => {
+    const wallet = req.params.wallet;
+    let user = await User.findOne({ wallet });
+    const isVip = PAID_USERS.includes(wallet);
+
+    if (isVip) {
+        if (!user) user = await User.create({ wallet, isPaid: true, karma: 100 });
+        else { user.isPaid = true; await user.save(); }
     }
-    res.json(user);
+    res.json(user || { karma: 0, isPaid: false });
 });
 
-app.get('/api/products', async (req, res) => res.json(await Product.find().sort({ createdAt: -1 })));
+// Получаем только АКТИВНЫЕ лоты (где время не вышло)
+app.get('/api/products', async (req, res) => {
+    const now = new Date();
+    res.json(await Product.find({ endTime: { $gt: now } }).sort({ createdAt: -1 }));
+});
 
 app.post('/api/products', async (req, res) => {
     const product = await Product.create({ 
@@ -65,6 +63,7 @@ app.post('/api/products', async (req, res) => {
 app.post('/api/bid', async (req, res) => {
     const { productId, amount } = req.body;
     const product = await Product.findById(productId);
+    if (new Date() > product.endTime) return res.status(400).send("Auction closed");
     product.currentBid = Number(amount);
     await product.save();
     res.json(product);
@@ -77,4 +76,5 @@ app.post('/api/products/:id/ask', async (req, res) => {
     res.json(product);
 });
 
-app.listen(process.env.PORT || 10000);
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`🚀 Monolith Engine Online`));
