@@ -20,7 +20,6 @@
         .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
-        .q-bubble { background: #25282e; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 0.8rem; border-left: 3px solid var(--gold); }
     </style>
 </head>
 <body>
@@ -37,17 +36,12 @@
         <h2>List an Item</h2>
         <input type="text" id="c-title" placeholder="Title">
         <textarea id="c-desc" placeholder="Description" rows="3"></textarea>
-        <button onclick="openUpload()" id="upload-btn" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
         <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
         <input type="number" id="c-price" placeholder="Starting Price (USDT)">
-        
-        <div style="margin-top:10px; background:#16181c; padding:10px; border-radius:12px; font-size:0.7rem; color:#aaa;">
-            <label style="display:flex; gap:10px; margin-bottom:8px;">
-                <input type="checkbox" id="check-fee" style="width:18px;"> I agree to 2% platform fee after sale.
-            </label>
-            <label style="display:flex; gap:10px;">
-                <input type="checkbox" id="check-resp" style="width:18px;"> I am responsible for item condition.
-            </label>
+        <div style="margin-top:10px; background:#16181c; padding:10px; border-radius:12px; font-size:0.7rem;">
+            <label><input type="checkbox" id="check-fee"> I agree to 2% fee.</label><br>
+            <label><input type="checkbox" id="check-resp"> I am responsible for item.</label>
         </div>
         <button class="btn-main" onclick="saveProduct()">PUBLISH LOT</button>
     </div>
@@ -56,28 +50,20 @@
         <h2>My Profile</h2>
         <div style="background:var(--card); padding:20px; border-radius:15px; margin-bottom:15px;">
             <p id="ui-wallet" style="font-size:0.6rem; color:var(--gray); word-break:break-all;"></p>
-            <p id="ui-paid">Status: --</p>
+            <hr style="border:0.5px solid #333; margin:15px 0;">
+            <p style="margin:5px 0;">Karma: <span id="ui-karma" style="color:var(--gold); font-weight:bold;">--</span></p>
+            <p style="margin:5px 0;">Subscription: <span id="ui-sub-status" style="font-weight:bold;">--</span></p>
         </div>
-        <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px;">LOGOUT WALLET</button>
+        <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px;">LOGOUT</button>
     </div>
 
     <div id="screen-detail" class="screen">
-        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK TO FEED</button>
+        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK</button>
         <div id="detail-content"></div>
-        
         <div style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
             <div id="detail-timer" style="color:var(--red); font-weight:bold; text-align:center; margin-bottom:10px;"></div>
             <input type="number" id="bid-input" style="text-align:center;">
             <button class="btn-main" onclick="makeBid()">PLACE BID</button>
-        </div>
-
-        <div style="margin-top:25px;">
-            <h4 style="color:var(--gold)">Discussion</h4>
-            <div id="questions-list"></div>
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="q-input" placeholder="Ask a question..." style="margin:0;">
-                <button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px;">SEND</button>
-            </div>
         </div>
     </div>
 
@@ -96,18 +82,19 @@
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active-screen');
             document.getElementById('tab-' + id).classList.add('active');
+            if(id === 'profile') updateProfile();
         }
 
-        function openUpload() {
-            cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => {
-                if (!err && res.event === "success") {
-                    uploadedUrl = res.info.secure_url;
-                    document.getElementById('upload-status').innerText = "✅ Image ready!";
-                }
-            });
+        async function updateProfile() {
+            if(!tonConnectUI.wallet) return;
+            const res = await fetch(`/api/user/${tonConnectUI.wallet.account.address}`);
+            const user = await res.json();
+            document.getElementById('ui-wallet').innerText = user.wallet;
+            document.getElementById('ui-karma').innerText = user.karma || 0;
+            const sub = document.getElementById('ui-sub-status');
+            sub.innerText = user.isPaid ? "PAID (Active)" : "NOT PAID";
+            sub.style.color = user.isPaid ? "#22c55e" : var(--red);
         }
-
-        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
 
         async function fetchLots() {
             const res = await fetch('/api/products'); allLots = await res.json();
@@ -120,65 +107,47 @@
                         <div style="color:var(--gold); font-size:0.9rem;">${p.currentBid} USDT</div>
                     </div>
                 </div>`).join('');
-            startTimers();
         }
 
-        function startTimers() {
-            setInterval(() => {
-                document.querySelectorAll('.card-timer').forEach(el => {
-                    const diff = new Date(el.dataset.endtime) - new Date();
-                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
-                });
-                if(currentP) {
-                    const diff = new Date(currentP.endTime) - new Date();
-                    document.getElementById('detail-timer').innerText = diff > 0 ? "Ends in: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
-                }
-            }, 1000);
-        }
-
-        async function openDetails(id) {
+        function openDetails(id) {
             currentP = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
-                <h2 style="margin:15px 0 5px 0;">${currentP.title}</h2>
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <h2>${currentP.title}</h2>
+                <div style="display:flex; justify-content:space-between;">
                     <span style="color:var(--gray)">Start: ${currentP.startPrice}</span>
                     <span style="color:var(--gold); font-weight:bold">Current: ${currentP.currentBid} USDT</span>
                 </div>
-                <p style="color:#ccc; font-size:0.9rem;">${currentP.description}</p>
+                <p>${currentP.description}</p>
             `;
-            renderQuestions();
             showScreen('detail');
         }
 
-        function renderQuestions() {
-            document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
-                <div class="q-bubble">
-                    <div style="font-size:0.6rem; color:var(--gray); margin-bottom:3px;">User: ${q.userWallet.slice(0,8)}...</div>
-                    <div>${q.text}</div>
-                </div>`).join('');
+        async function makeBid() {
+            const amount = Number(document.getElementById('bid-input').value);
+            if(amount <= currentP.currentBid) return alert("Bid must be higher!");
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            fetchLots(); showScreen('home');
         }
 
-        async function sendQuestion() {
-            const text = document.getElementById('q-input').value;
-            if(!text || !tonConnectUI.wallet) return;
-            await fetch(`/api/products/${currentP._id}/question`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, text }) });
-            document.getElementById('q-input').value = "";
-            const res = await fetch('/api/products'); allLots = await res.json();
-            openDetails(currentP._id);
-        }
+        setInterval(() => {
+            document.querySelectorAll('.card-timer').forEach(el => {
+                const diff = new Date(el.dataset.endtime) - new Date();
+                el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+            });
+            if(currentP && document.getElementById('screen-detail').classList.contains('active-screen')) {
+                const diff = new Date(currentP.endTime) - new Date();
+                document.getElementById('detail-timer').innerText = diff > 0 ? "Ends in: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+            }
+        }, 1000);
 
+        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('upload-status').innerText = "✅ Image ready!"; } }); }
+        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
         async function saveProduct() {
             if(!document.getElementById('check-fee').checked || !document.getElementById('check-resp').checked) return alert("Accept terms!");
             const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             showScreen('home'); fetchLots();
-        }
-
-        async function makeBid() {
-            const amount = document.getElementById('bid-input').value;
-            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
-            fetchLots(); showScreen('home');
         }
 
         fetchLots();
