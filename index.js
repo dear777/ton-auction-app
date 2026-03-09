@@ -16,7 +16,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
+mongoose.connect(mongoUri).then(() => console.log('✅ Database Locked & Loaded'));
 
 const userSchema = new mongoose.Schema({
     wallet: { type: String, unique: true },
@@ -35,7 +35,6 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
-// USDT Payment Checker
 async function checkUsdtPayments() {
     try {
         const res = await axios.get(`https://toncenter.com/api/v2/getJettonTransactions?address=${MY_WALLET}&limit=15`);
@@ -45,7 +44,7 @@ async function checkUsdtPayments() {
                 await User.findOneAndUpdate({ wallet: tx.source }, { isPaid: true });
             }
         }
-    } catch (e) { console.error("Payment check error"); }
+    } catch (e) { console.error("Payment sync issue"); }
 }
 setInterval(checkUsdtPayments, 60000);
 
@@ -86,4 +85,4 @@ app.post('/api/products/:id/ask', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Gold Auction Engine: Online`));
