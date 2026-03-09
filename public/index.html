@@ -246,6 +246,49 @@
             fetchLots(); showScreen('home');
         }
 
+        // Исправленная функция оплаты (теперь не будет "умирать")
+async function payEntryFee() { 
+    if (!tonConnectUI.wallet) {
+        alert("Please click 'Connect Wallet' in the top right corner first!");
+        tonConnectUI.connectWallet();
+        return;
+    }
+    const wallet = tonConnectUI.wallet.account.address;
+    window.location.href = `ton://transfer/${MY_WALLET}?amount=5000000&text=PAY-${wallet.slice(-6)}&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; 
+}
+
+// Исправленная логика доступа (мгновенная реакция)
+async function updateAccess() {
+    const wallet = tonConnectUI.wallet;
+    const payOverlay = document.getElementById('screen-pay');
+    
+    if (wallet) {
+        console.log("Checking access for:", wallet.account.address);
+        try {
+            const res = await fetch(`/api/user/${wallet.account.address}`);
+            currentUser = await res.json();
+
+            if (currentUser.isPaid === true) {
+                console.log("Access Granted!");
+                payOverlay.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                fetchLots();
+            } else {
+                console.log("Access Denied. Need Payment.");
+                payOverlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        } catch (e) { 
+            console.error("Server error, showing pay screen as fallback");
+            payOverlay.style.display = 'flex'; 
+        }
+    } else {
+        // Режим просмотра для неавторизованных
+        payOverlay.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
         fetchLots();
         updateAccess();
     </script>
