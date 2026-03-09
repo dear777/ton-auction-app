@@ -3,19 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GOLD Auction</title>
+    <title>GOLD Auction Global</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
-        :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --gray: #888; }
+        :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+        
         .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
-        .screen { display: none; padding: 20px; }
-        .active-screen { display: block; }
+        
         .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
+        .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; }
+        .tab-item.active { color: var(--gold); font-weight: bold; }
+        
+        .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .active-screen { display: block; }
+        
+        .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
+        .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; margin-bottom: 10px; }
+        .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
+        
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
-        .lot-card { background: var(--card); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
+        
+        .price-row { font-size: 0.7rem; color: var(--gray); margin-top: 2px; }
+        .price-row b { color: var(--text); }
     </style>
 </head>
 <body>
@@ -23,22 +35,47 @@
     <div id="screen-pay" class="full-screen" style="display: none;">
         <div style="font-size: 60px; margin-bottom: 20px;">🏺</div>
         <h2 style="color: var(--gold);">SECURE ACCESS</h2>
-        <p>Entry fee: 5 USDT. Supports the project and kills bots.</p>
-        <button class="btn-main" onclick="payNow()">PAY & ENTER</button>
+        <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 20px 0;">
+            A one-time fee of <b>5 USDT</b> is required to filter out bots and ensure a safe environment.
+        </p>
+        <button class="btn-main" onclick="payNow()">ACTIVATE ACCESS (5 USDT)</button>
     </div>
 
     <div id="screen-home" class="screen">
-        <h2 style="color:var(--gold)">GOLD AUCTION</h2>
-        <div id="lots-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+        <div class="header">
+            <div style="font-weight:900; color:var(--gold); font-size: 1.2rem; margin-bottom: 10px;">GOLD AUCTION</div>
+            <select id="filter-category" onchange="fetchLots()">
+                <option value="All">All Categories</option>
+                <option value="Watch">⌚ Luxury Watches</option>
+                <option value="Coins">🪙 Rare Coins</option>
+                <option value="Art">🎨 Fine Art</option>
+                <option value="Jewelry">💎 Jewelry</option>
+            </select>
+        </div>
+        <div id="lots-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;"></div>
     </div>
 
     <div id="screen-create" class="screen">
-        <h2>List Item</h2>
-        <input type="text" id="c-title" placeholder="Title">
-        <textarea id="c-desc" placeholder="Description"></textarea>
-        <button onclick="openUpload()" style="background:#444; color:white; padding:15px; border-radius:12px; width:100%;">📸 PHOTO</button>
-        <input type="number" id="c-price" placeholder="Price">
-        <button class="btn-main" onclick="saveProduct()">PUBLISH</button>
+        <h2>List New Item</h2>
+        <input type="text" id="c-title" placeholder="Item Title">
+        <textarea id="c-desc" placeholder="Full Description" rows="3"></textarea>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <select id="c-cat">
+                <option value="Watch">Watch</option>
+                <option value="Coins">Coins</option>
+                <option value="Art">Art</option>
+                <option value="Jewelry">Jewelry</option>
+            </select>
+            <select id="c-curr">
+                <option value="USDT">USDT</option>
+                <option value="TON">TON</option>
+                <option value="BTC">BTC</option>
+            </select>
+        </div>
+        <button onclick="openUpload()" style="background:#444; color:white; padding:15px; border-radius:12px; width:100%; border:none;">📸 UPLOAD PHOTO</button>
+        <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
+        <input type="number" id="c-price" placeholder="Starting Price">
+        <button class="btn-main" onclick="saveProduct()">PUBLISH LOT</button>
     </div>
 
     <div id="screen-profile" class="screen">
@@ -47,13 +84,24 @@
             <p>User: <b id="ui-name"></b></p>
             <p>ID: <span id="ui-id" style="color:var(--gray)"></span></p>
             <p>Karma: <b style="color:var(--gold)">100</b></p>
+            <p>Status: <span style="color:#22c55e">Verified Account</span></p>
+        </div>
+    </div>
+
+    <div id="screen-detail" class="screen">
+        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK</button>
+        <div id="detail-content"></div>
+        <div style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
+            <p style="font-size: 0.8rem; color: var(--gray);">Enter your bid:</p>
+            <input type="number" id="bid-input" style="text-align:center; font-size: 1.5rem;">
+            <button class="btn-main" onclick="makeBid()">PLACE BID</button>
         </div>
     </div>
 
     <div class="tab-bar">
-        <div onclick="showScreen('home')">🏠 FEED</div>
-        <div onclick="showScreen('create')">➕ SELL</div>
-        <div onclick="showScreen('profile')">👤 PROFILE</div>
+        <div class="tab-item active" id="tab-home" onclick="showScreen('home')">🏠 FEED</div>
+        <div class="tab-item" id="tab-create" onclick="showScreen('create')">➕ SELL</div>
+        <div class="tab-item" id="tab-profile" onclick="showScreen('profile')">👤 PROFILE</div>
     </div>
 
     <script>
@@ -61,20 +109,19 @@
         tg.expand();
 
         let currentUser = null;
+        let allLots = [];
+        let currentP = null;
+        let uploadedUrl = "";
         const myAdminWallet = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
 
         async function initAuth() {
             const user = tg.initDataUnsafe.user;
-            if (!user) {
-                alert("Please open from Telegram!");
-                return;
-            }
+            if (!user) return alert("Open in Telegram!");
 
-            // Авто-логин через TG ID
             const res = await fetch('/api/auth', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ tgId: user.id, wallet: myAdminWallet }) // Шлем твой кошелек для Whitelist
+                body: JSON.stringify({ tgId: user.id, wallet: myAdminWallet })
             });
             currentUser = await res.json();
 
@@ -89,7 +136,10 @@
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active-screen');
+            if (document.getElementById('tab-' + id)) document.getElementById('tab-' + id).classList.add('active');
+            
             if(id === 'profile') {
                 document.getElementById('ui-name').innerText = tg.initDataUnsafe.user.first_name;
                 document.getElementById('ui-id').innerText = tg.initDataUnsafe.user.id;
@@ -97,26 +147,74 @@
         }
 
         async function fetchLots() {
+            const filter = document.getElementById('filter-category').value;
             const res = await fetch('/api/products');
-            const data = await res.json();
-            document.getElementById('lots-list').innerHTML = data.map(p => `
-                <div class="lot-card">
+            allLots = await res.json();
+            
+            const filtered = filter === "All" ? allLots : allLots.filter(x => x.category === filter);
+            
+            document.getElementById('lots-list').innerHTML = filtered.map(p => `
+                <div class="lot-card" onclick="openDetails('${p._id}')">
+                    <div class="card-timer">24h left</div>
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
-                    <div style="padding:8px;"><b>${p.title}</b><br>${p.currentBid} USDT</div>
+                    <div style="padding:8px;">
+                        <div style="font-weight:bold; font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.title}</div>
+                        <div class="price-row">Start: <b>${p.startPrice} ${p.currency}</b></div>
+                        <div class="price-row">Current: <b style="color:var(--gold)">${p.currentBid} ${p.currency}</b></div>
+                    </div>
                 </div>`).join('');
+        }
+
+        function openDetails(id) {
+            currentP = allLots.find(x => x._id === id);
+            document.getElementById('detail-content').innerHTML = `
+                <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
+                <h2 style="margin: 10px 0;">${currentP.title}</h2>
+                <p style="color:var(--gray); font-size:0.9rem;">${currentP.description}</p>
+                <div style="display:flex; justify-content:space-between; background:var(--card); padding:15px; border-radius:12px;">
+                    <div><span style="font-size:0.7rem; color:var(--gray);">START PRICE</span><br><b>${currentP.startPrice} ${currentP.currency}</b></div>
+                    <div style="text-align:right;"><span style="font-size:0.7rem; color:var(--gray);">CURRENT BID</span><br><b style="color:var(--gold); font-size:1.2rem;">${currentP.currentBid} ${currentP.currency}</b></div>
+                </div>`;
+            showScreen('detail');
+        }
+
+        async function makeBid() {
+            const amount = Number(document.getElementById('bid-input').value);
+            if (amount <= currentP.currentBid) return alert("Bid higher!");
+            await fetch('/api/bid', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ productId: currentP._id, amount })
+            });
+            fetchLots();
+            showScreen('home');
+        }
+
+        function openUpload() { 
+            cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { 
+                if (!err && res.event === "success") { 
+                    uploadedUrl = res.info.secure_url; 
+                    document.getElementById('upload-status').innerText = "✅ PHOTO READY";
+                } 
+            }); 
+        }
+
+        async function saveProduct() {
+            const data = { 
+                title: document.getElementById('c-title').value, 
+                description: document.getElementById('c-desc').value, 
+                category: document.getElementById('c-cat').value,
+                currency: document.getElementById('c-curr').value,
+                mediaUrl: uploadedUrl, 
+                startPrice: document.getElementById('c-price').value, 
+                ownerTgId: tg.initDataUnsafe.user.id 
+            };
+            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            showScreen('home'); fetchLots();
         }
 
         function payNow() {
             window.location.href = `ton://transfer/${myAdminWallet}?amount=5000000&text=PAY-${tg.initDataUnsafe.user.id}`;
-        }
-
-        let uploadedUrl = "";
-        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; } }); }
-
-        async function saveProduct() {
-            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerTgId: tg.initDataUnsafe.user.id };
-            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            showScreen('home'); fetchLots();
         }
 
         initAuth();

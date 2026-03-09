@@ -7,8 +7,6 @@ app.use(express.static('public'));
 
 const mongoUri = process.env.MONGO_URI; 
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-
-// ВСТАВЬ СЮДА СВОЙ TELEGRAM ID (число) ИЛИ ОСТАВЬ ТАК, Я СДЕЛАЛ ПРОВЕРКУ ПО КОШЕЛЬКУ ТОЖЕ
 const WHITELIST_WALLETS = ["UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu"];
 
 mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
@@ -23,19 +21,16 @@ const User = mongoose.model('User', userSchema);
 
 const productSchema = new mongoose.Schema({
     ownerTgId: String, title: String, description: String, mediaUrl: String,
-    category: String, currency: { type: String, default: "USDT" },
-    startPrice: Number, currentBid: Number, endTime: Date,
-    questions: Array
+    category: String, currency: String,
+    startPrice: Number, currentBid: Number,
+    endTime: Date, questions: Array
 });
 const Product = mongoose.model('Product', productSchema);
 
 app.post('/api/auth', async (req, res) => {
     const { tgId, wallet } = req.body;
     let user = await User.findOne({ tgId });
-    
-    // Если кошелек в белом списке — даем доступ
     const isVip = WHITELIST_WALLETS.includes(wallet);
-
     if (!user) {
         user = await User.create({ tgId, wallet, isPaid: isVip, karma: 100 });
     } else if (isVip) {
@@ -47,7 +42,19 @@ app.post('/api/auth', async (req, res) => {
 app.get('/api/products', async (req, res) => res.json(await Product.find().sort({ createdAt: -1 })));
 
 app.post('/api/products', async (req, res) => {
-    const product = await Product.create({ ...req.body, endTime: new Date(Date.now() + 86400000) });
+    const product = await Product.create({ 
+        ...req.body, 
+        currentBid: req.body.startPrice,
+        endTime: new Date(Date.now() + 86400000) 
+    });
+    res.json(product);
+});
+
+app.post('/api/bid', async (req, res) => {
+    const { productId, amount } = req.body;
+    const product = await Product.findById(productId);
+    product.currentBid = Number(amount);
+    await product.save();
     res.json(product);
 });
 
