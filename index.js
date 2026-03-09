@@ -1,13 +1,12 @@
-const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const mongoose = require('mongoose');
 const axios = require('axios');
 
-const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
-
-// --- ВАШИ НАСТРОЙКИ АДМИНА ---
+// ТВОЙ КОШЕЛЕК ДЛЯ ПРИЕМА ПЛАТЕЖЕЙ
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
+
+// БЕЛЫЙ СПИСОК (АДМИНЫ И ИСКЛЮЧЕНИЯ)
 const WHITELIST = [
     "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu",
     "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_"
@@ -17,7 +16,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect(mongoUri).then(() => console.log('✅ Gold Auction DB Connected'));
+mongoose.connect(mongoUri).then(() => console.log('✅ MongoDB Connected'));
 
 const userSchema = new mongoose.Schema({
     wallet: { type: String, unique: true },
@@ -28,29 +27,14 @@ const User = mongoose.model('User', userSchema);
 
 const productSchema = new mongoose.Schema({
     ownerWallet: String, title: String, description: String, mediaUrl: String,
-    category: String, condition: String, currency: String,
+    category: String, condition: String, currency: { type: String, default: "USDT" },
     startPrice: Number, currentBid: Number,
-    highestBidder: { type: String, default: "No bids" },
-    endTime: Date, expireAt: { type: Date, index: { expires: 0 } },
+    endTime: Date, 
     questions: [{ userWallet: String, text: String, isSeller: Boolean, createdAt: { type: Date, default: Date.now } }]
 });
 const Product = mongoose.model('Product', productSchema);
 
-// Проверка платежей USDT через TON API
-async function checkUsdtPayments() {
-    try {
-        const res = await axios.get(`https://toncenter.com/api/v2/getJettonTransactions?address=${MY_WALLET}&limit=15`);
-        if (!res.data.result) return;
-        for (let tx of res.data.result) {
-            if (tx.amount === "5000000" && tx.comment && tx.comment.startsWith("PAY-")) {
-                await User.findOneAndUpdate({ wallet: tx.source }, { isPaid: true });
-            }
-        }
-    } catch (e) { console.error("Payment sync error"); }
-}
-setInterval(checkUsdtPayments, 60000);
-
-// API: Получение данных пользователя (с учетом Whitelist)
+// API: Получение данных юзера (Проверка Whitelist)
 app.get('/api/user/:wallet', async (req, res) => {
     const wallet = req.params.wallet;
     let user = await User.findOne({ wallet });
@@ -61,33 +45,29 @@ app.get('/api/user/:wallet', async (req, res) => {
     res.json(user || { karma: 0, isPaid: false });
 });
 
-// API: Товары
 app.get('/api/products', async (req, res) => res.json(await Product.find().sort({ createdAt: -1 })));
 
 app.post('/api/products', async (req, res) => {
     const endTime = new Date(Date.now() + 86400000); // 24 часа
-    const product = await Product.create({ ...req.body, currentBid: req.body.startPrice, endTime, expireAt: new Date(endTime.getTime() + 86400000) });
+    const product = await Product.create({ ...req.body, currentBid: req.body.startPrice, endTime });
     res.json(product);
 });
 
-// API: Ставки
 app.post('/api/bid', async (req, res) => {
     const { productId, wallet, amount } = req.body;
     const product = await Product.findById(productId);
-    if (Number(amount) <= product.currentBid) return res.status(400).send("Low bid");
+    if (Number(amount) <= product.currentBid) return res.status(400).send("Bid too low");
     product.currentBid = Number(amount);
-    product.highestBidder = wallet;
     await product.save();
     res.json(product);
 });
 
-// API: Вопросы в лоте
 app.post('/api/products/:id/ask', async (req, res) => {
     const product = await Product.findById(req.params.id);
-    product.questions.push({ ...req.body });
+    product.questions.push(req.body);
     await product.save();
     res.json(product);
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Gold Auction Engine: Online`));
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));

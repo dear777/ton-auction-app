@@ -3,95 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GOLD Auction Global</title>
+    <title>GOLD Auction Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; }
         
-        /* ЭКРАН ОПЛАТЫ */
-        .full-screen-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
-        
-        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
-        .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; opacity: 0.6; }
-        .tab-item.active { color: var(--gold); opacity: 1; font-weight: bold; }
+        .full-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; box-sizing: border-box; }
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; display: none; }
+        .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; }
+        .tab-item.active { color: var(--gold); font-weight: bold; }
         
         .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .active-screen { display: block; }
         
-        .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
-        #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; }
-        .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
-        
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
-        
-        .price-row { font-size: 0.65rem; color: var(--gray); margin-top: 2px; }
-        .price-row b { color: var(--text); }
         .q-box { background: #000; padding: 10px; border-radius: 10px; margin-bottom: 10px; border-left: 3px solid var(--gold); }
-        .seller-label { color: var(--gold); font-weight: bold; font-size: 0.7rem; }
     </style>
 </head>
 <body>
 
-    <div id="screen-pay" class="full-screen-overlay" style="display: none;">
-        <div style="font-size: 60px; margin-bottom: 20px;">🛡️</div>
-        <h2 style="color: var(--gold); font-weight: 900;">SECURE ACCESS</h2>
-        <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 20px 0; max-width: 400px;">
-            To maintain a <b style="color:var(--gold)">safe trading environment</b>, we require a one-time entry fee of <b>5 USDT</b>.<br><br>
-            This ensures every participant has serious intentions and protects us from fraud.
-        </p>
-        <button class="btn-main" onclick="payEntryFee()">ACTIVATE (5 USDT)</button>
-        <button onclick="logout()" style="background:none; border:none; color:var(--gray); margin-top:20px;">Logout Wallet</button>
+    <div id="screen-auth" class="full-screen">
+        <div style="font-size: 60px; margin-bottom: 20px;">🏺</div>
+        <h2 style="color: var(--gold); font-weight: 900;">GOLD AUCTION</h2>
+        <p style="color: var(--gray); font-size: 0.9rem; margin-bottom: 30px;">Connect your wallet to enter the elite auction.</p>
+        <div id="ton-connect-button"></div>
     </div>
 
-    <div id="screen-home" class="screen active-screen">
-        <div class="header">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-                <div id="ton-connect-root"></div>
-            </div>
-            <select id="filter-category" onchange="fetchLots()" style="margin-top:10px;">
-                <option value="All">All Categories</option>
-                <option value="Coins">🪙 Coins</option>
-                <option value="Watch">⌚ Luxury Watches</option>
-                <option value="Art">🎨 Fine Art</option>
-                <option value="Jewelry">💎 Jewelry</option>
-            </select>
+    <div id="screen-pay" class="full-screen" style="display: none;">
+        <div style="font-size: 60px; margin-bottom: 20px;">🛡️</div>
+        <h2 style="color: var(--gold); font-weight: 900;">SECURE ACCESS</h2>
+        <p style="color: #ccc; font-size: 0.85rem; line-height: 1.5; margin: 20px 0;">
+            A one-time fee of <b style="color:var(--gold)">5 USDT</b> is required to filter out bots and ensure a safe trading environment for serious collectors.
+        </p>
+        <button class="btn-main" onclick="payEntryFee()">ACTIVATE ACCESS (5 USDT)</button>
+        <button onclick="logout()" style="background:none; border:none; color:var(--gray); margin-top:20px;">Logout</button>
+    </div>
+
+    <div id="screen-home" class="screen">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
+            <div id="header-connect"></div>
         </div>
-        <div id="lots-list"></div>
+        <select id="filter-category" onchange="fetchLots()">
+            <option value="All">All Items</option>
+            <option value="Coins">Coins</option>
+            <option value="Watch">Watches</option>
+        </select>
+        <div id="lots-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:15px;"></div>
     </div>
 
     <div id="screen-create" class="screen">
         <h2>List New Item</h2>
         <input type="text" id="c-title" placeholder="Title">
-        <textarea id="c-desc" placeholder="Description" rows="3"></textarea>
+        <textarea id="c-desc" placeholder="Description"></textarea>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <select id="c-cat">
-                <option value="Coins">Coins</option>
-                <option value="Watch">Watches</option>
-                <option value="Art">Art</option>
-            </select>
-            <select id="c-curr">
-                <option value="USDT">USDT</option>
-                <option value="TON">TON</option>
-                <option value="BTC">BTC</option>
-            </select>
+            <select id="c-cat"><option value="Coins">Coins</option><option value="Watch">Watches</option></select>
+            <select id="c-curr"><option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option></select>
         </div>
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin: 10px 0;">📸 UPLOAD PHOTO</button>
-        <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
-        <input type="number" id="c-price" placeholder="Starting Price">
-        <button class="btn-main" onclick="saveProduct()">PUBLISH LOT</button>
+        <button onclick="openUpload()" style="background:#444; border:none; color:white; padding:15px; border-radius:12px;">📸 PHOTO</button>
+        <input type="number" id="c-price" placeholder="Start Price">
+        <button class="btn-main" onclick="saveProduct()">PUBLISH</button>
     </div>
 
     <div id="screen-profile" class="screen">
         <h2>Profile</h2>
-        <div id="profile-box" style="background:var(--card); padding:20px; border-radius:15px;">
-            <p id="ui-wallet" style="font-size:0.6rem; color:var(--gray); word-break:break-all;">Connect wallet to see info</p>
-            <hr style="border:0.5px solid #333; margin:15px 0;">
+        <div style="background:var(--card); padding:20px; border-radius:15px;">
+            <p id="ui-wallet" style="font-size:0.6rem; color:var(--gray); word-break:break-all;"></p>
             <p>Karma: <span id="ui-karma" style="color:var(--gold); font-weight:bold;">100</span></p>
         </div>
         <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px; margin-top:20px;">LOGOUT</button>
@@ -100,19 +81,18 @@
     <div id="screen-detail" class="screen">
         <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK</button>
         <div id="detail-content"></div>
-        <div id="qa-section" style="margin-top:20px; border-top:1px solid #333; padding-top:15px;">
-            <h4 style="color:var(--gold)">Discussion</h4>
+        <div id="qa-section" style="margin-top:20px;">
+            <h4>Discussion</h4>
             <div id="questions-list"></div>
-            <div style="display:flex; gap:5px;"><input type="text" id="q-input" placeholder="Ask a question..."><button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px; font-weight:bold;">SEND</button></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="q-input" style="margin:0;"><button onclick="sendQuestion()" style="background:var(--gold); border:none; padding:0 15px; border-radius:10px;">SEND</button></div>
         </div>
         <div style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
-            <div id="detail-timer" style="color:var(--red); font-weight:bold; text-align:center; margin-bottom:10px; font-size:1.1rem;"></div>
             <input type="number" id="bid-input" style="text-align:center;">
             <button class="btn-main" onclick="makeBid()">PLACE BID</button>
         </div>
     </div>
 
-    <div class="tab-bar">
+    <div id="main-nav" class="tab-bar">
         <div class="tab-item active" id="tab-home" onclick="showScreen('home')">🏠 FEED</div>
         <div class="tab-item" id="tab-create" onclick="showScreen('create')">➕ SELL</div>
         <div class="tab-item" id="tab-profile" onclick="showScreen('profile')">👤 PROFILE</div>
@@ -121,69 +101,54 @@
     <script>
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
             manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', 
-            buttonRootId: 'ton-connect-root' 
+            buttonRootId: 'ton-connect-button' 
         });
 
         let currentUser = null; let allLots = []; let currentP = null; let uploadedUrl = "";
 
-        // ЛОГИКА ДОСТУПА (СКРЫТИЕ ШИРМЫ ДЛЯ WHITELIST)
-        async function updateAccess() {
+        async function handleStatusChange() {
             const wallet = tonConnectUI.wallet;
-            const payOverlay = document.getElementById('screen-pay');
-            
-            if (wallet) {
-                const res = await fetch(`/api/user/${wallet.account.address}`);
-                currentUser = await res.json();
+            if (!wallet) {
+                document.getElementById('screen-auth').style.display = 'flex';
+                document.getElementById('screen-pay').style.display = 'none';
+                document.getElementById('main-nav').style.display = 'none';
+                document.body.style.overflow = 'hidden';
+                return;
+            }
 
-                if (currentUser.isPaid === true) {
-                    // ТЫ В СПИСКЕ АДМИНОВ ИЛИ ОПЛАТИЛ - ПРЯЧЕМ ШИРМУ
-                    payOverlay.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                    fetchLots();
-                } else {
-                    // ТЫ НОВЕНЬКИЙ - ПОКАЗЫВАЕМ ШИРМУ
-                    payOverlay.style.display = 'flex';
-                    document.body.style.overflow = 'hidden';
-                }
-            } else {
-                // DEMO MODE (КОШЕЛЕК НЕ ПОДКЛЮЧЕН) - ШИРМУ НЕ ПОКАЗЫВАЕМ
-                payOverlay.style.display = 'none';
+            const res = await fetch(`/api/user/${wallet.account.address}`);
+            currentUser = await res.json();
+
+            if (currentUser.isPaid) {
+                document.getElementById('screen-auth').style.display = 'none';
+                document.getElementById('screen-pay').style.display = 'none';
+                document.getElementById('main-nav').style.display = 'flex';
                 document.body.style.overflow = 'auto';
+                document.getElementById('header-connect').appendChild(document.getElementById('ton-connect-button'));
+                showScreen('home'); fetchLots();
+            } else {
+                document.getElementById('screen-auth').style.display = 'none';
+                document.getElementById('screen-pay').style.display = 'flex';
+                document.getElementById('main-nav').style.display = 'none';
             }
         }
 
-        tonConnectUI.onStatusChange(updateAccess);
+        tonConnectUI.onStatusChange(handleStatusChange);
 
         function showScreen(id) {
-            if (!tonConnectUI.wallet && (id === 'create' || id === 'profile')) {
-                tonConnectUI.connectWallet();
-                return;
-            }
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
             document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
             document.getElementById('screen-' + id).classList.add('active-screen');
             document.getElementById('tab-' + id).classList.add('active');
-            
-            if(id === 'profile' && currentUser) {
-                document.getElementById('ui-wallet').innerText = currentUser.wallet;
-                document.getElementById('ui-karma').innerText = currentUser.karma || 100;
-            }
+            if(id === 'profile') document.getElementById('ui-wallet').innerText = currentUser.wallet;
         }
 
         async function fetchLots() {
-            const filter = document.getElementById('filter-category').value;
-            const res = await fetch('/api/products'); 
-            allLots = await res.json();
-            const filtered = filter === 'All' ? allLots : allLots.filter(p => p.category === filter);
-            document.getElementById('lots-list').innerHTML = filtered.map(p => `
-                <div class="lot-card" onclick="openDetails('${p._id}')">
-                    <div class="card-timer" data-endtime="${p.endTime}"></div>
+            const res = await fetch('/api/products'); allLots = await res.json();
+            document.getElementById('lots-list').innerHTML = allLots.map(p => `
+                <div style="background:var(--card); border-radius:12px; overflow:hidden;" onclick="openDetails('${p._id}')">
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
-                    <div style="padding:8px;">
-                        <div style="font-weight:bold; font-size:0.75rem;">${p.title}</div>
-                        <div class="price-row">Start: <b>${p.startPrice} ${p.currency}</b></div>
-                        <div class="price-row">Now: <b style="color:var(--gold)">${p.currentBid} ${p.currency}</b></div>
-                    </div>
+                    <div style="padding:8px; font-size:0.8rem;"><b>${p.title}</b><br><span style="color:var(--gold)">${p.currentBid} ${p.currency}</span></div>
                 </div>`).join('');
         }
 
@@ -191,106 +156,49 @@
             currentP = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
-                <h2 style="margin:10px 0;">${currentP.title}</h2>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <h2>${currentP.title}</h2>
+                <div style="display:flex; justify-content:space-between;">
                     <span style="color:var(--gray)">Start: ${currentP.startPrice}</span>
-                    <span style="color:var(--gold); font-weight:bold">Current: ${currentP.currentBid} ${currentP.currency}</span>
-                </div>
-                <p>${currentP.description}</p>
-            `;
-            renderQuestions();
-            showScreen('detail');
+                    <span style="color:var(--gold); font-weight:bold">Now: ${currentP.currentBid} ${currentP.currency}</span>
+                </div><p>${currentP.description}</p>`;
+            renderQuestions(); showScreen('detail');
         }
 
         function renderQuestions() {
             document.getElementById('questions-list').innerHTML = currentP.questions.map(q => `
                 <div class="q-box">
-                    <span class="${q.isSeller ? 'seller-label' : ''}" style="font-size:0.7rem;">${q.isSeller ? 'SELLER' : 'BUYER'}</span>
-                    <p style="margin:5px 0; font-size:0.85rem;">${q.text}</p>
+                    <span style="font-size:0.7rem; color:var(--gold)">${q.isSeller ? 'SELLER' : 'BUYER'}</span>
+                    <p style="margin:5px 0;">${q.text}</p>
                 </div>`).join('');
         }
 
         async function sendQuestion() {
-            if (!tonConnectUI.wallet) return;
             const text = document.getElementById('q-input').value;
             const res = await fetch(`/api/products/${currentP._id}/ask`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, text, isSeller: (tonConnectUI.wallet.account.address === currentP.ownerWallet) })
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userWallet: currentUser.wallet, text, isSeller: (currentUser.wallet === currentP.ownerWallet) })
             });
-            currentP = await res.json();
-            renderQuestions(); document.getElementById('q-input').value = '';
-        }
-
-        setInterval(() => {
-            document.querySelectorAll('.card-timer').forEach(el => {
-                const diff = new Date(el.dataset.endtime) - new Date();
-                el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
-            });
-        }, 1000);
-
-        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('upload-status').innerText = "✅ Done"; } }); }
-        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
-        async function payEntryFee() { window.location.href = `ton://transfer/${MY_WALLET}?amount=5000000&text=PAY-${tonConnectUI.wallet.account.address.slice(-6)}&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; }
-        
-        async function saveProduct() {
-            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, category: document.getElementById('c-cat').value, currency: document.getElementById('c-curr').value, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
-            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            showScreen('home'); fetchLots();
+            currentP = await res.json(); renderQuestions(); document.getElementById('q-input').value = '';
         }
 
         async function makeBid() {
             const amount = Number(document.getElementById('bid-input').value);
             if(amount <= currentP.currentBid) return alert("Bid higher!");
-            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: currentUser.wallet, amount }) });
             fetchLots(); showScreen('home');
         }
 
-        // Исправленная функция оплаты (теперь не будет "умирать")
-async function payEntryFee() { 
-    if (!tonConnectUI.wallet) {
-        alert("Please click 'Connect Wallet' in the top right corner first!");
-        tonConnectUI.connectWallet();
-        return;
-    }
-    const wallet = tonConnectUI.wallet.account.address;
-    window.location.href = `ton://transfer/${MY_WALLET}?amount=5000000&text=PAY-${wallet.slice(-6)}&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; 
-}
-
-// Исправленная логика доступа (мгновенная реакция)
-async function updateAccess() {
-    const wallet = tonConnectUI.wallet;
-    const payOverlay = document.getElementById('screen-pay');
-    
-    if (wallet) {
-        console.log("Checking access for:", wallet.account.address);
-        try {
-            const res = await fetch(`/api/user/${wallet.account.address}`);
-            currentUser = await res.json();
-
-            if (currentUser.isPaid === true) {
-                console.log("Access Granted!");
-                payOverlay.style.display = 'none';
-                document.body.style.overflow = 'auto';
-                fetchLots();
-            } else {
-                console.log("Access Denied. Need Payment.");
-                payOverlay.style.display = 'flex';
-                document.body.style.overflow = 'hidden';
-            }
-        } catch (e) { 
-            console.error("Server error, showing pay screen as fallback");
-            payOverlay.style.display = 'flex'; 
+        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; } }); }
+        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
+        async function payEntryFee() { window.location.href = `ton://transfer/UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu?amount=5000000&text=PAY-${currentUser.wallet.slice(-6)}&jetton=EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1`; }
+        
+        async function saveProduct() {
+            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, category: document.getElementById('c-cat').value, currency: document.getElementById('c-curr').value, startPrice: document.getElementById('c-price').value, ownerWallet: currentUser.wallet };
+            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            showScreen('home'); fetchLots();
         }
-    } else {
-        // Режим просмотра для неавторизованных
-        payOverlay.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
 
-        fetchLots();
-        updateAccess();
+        handleStatusChange();
     </script>
 </body>
 </html>
