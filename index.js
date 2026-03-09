@@ -10,7 +10,13 @@ const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
 const USDT_MASTER = "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_";
 
 // Исключения для друзей
-const WHITELIST = ["UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu"]; 
+// БЕЛЫЙ СПИСОК (Друзья и админы, которые не платят 5$)
+const WHITELIST = [
+    "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu", // Твой кошелек
+    "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_", // Новый кошелек в исключениях
+    "АДРЕС_КОШЕЛЬКА_ДРУГА_1",
+    "АДРЕС_КОШЕЛЬКА_ДРУГА_2"
+]; 
 
 const app = express();
 app.use(express.json());
