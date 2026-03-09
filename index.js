@@ -17,15 +17,14 @@ mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
 
 const userSchema = new mongoose.Schema({
     wallet: { type: String, unique: true },
-    tgId: String,
     isPaid: { type: Boolean, default: false },
-    karma: { type: Number, default: 100 } // Твоя Карма
+    karma: { type: Number, default: 100 }
 });
 const User = mongoose.model('User', userSchema);
 
 const productSchema = new mongoose.Schema({
     ownerWallet: String, title: String, description: String, mediaUrl: String,
-    startPrice: Number, currentBid: Number,
+    category: String, condition: String, startPrice: Number, currentBid: Number,
     endTime: Date, expireAt: { type: Date, index: { expires: 0 } }
 });
 const Product = mongoose.model('Product', productSchema);
@@ -40,22 +39,23 @@ app.get('/api/user/:wallet', async (req, res) => {
     res.json(user || { karma: 0, isPaid: false });
 });
 
-app.post('/api/bid', async (req, res) => {
-    const { productId, wallet, amount } = req.body;
-    const product = await Product.findById(productId);
-    if (Number(amount) <= product.currentBid) return res.status(400).send("Bid too low!");
-    product.currentBid = Number(amount);
-    product.highestBidder = wallet;
-    await product.save();
-    res.json(product);
-});
-
 app.get('/api/products', async (req, res) => res.json(await Product.find().sort({ createdAt: -1 })));
+
 app.post('/api/products', async (req, res) => {
     const endTime = new Date(Date.now() + 86400000);
     const product = await Product.create({ ...req.body, currentBid: req.body.startPrice, endTime, expireAt: new Date(endTime.getTime() + 86400000) });
     res.json(product);
 });
 
+app.post('/api/bid', async (req, res) => {
+    const { productId, wallet, amount } = req.body;
+    const product = await Product.findById(productId);
+    if (Number(amount) <= product.currentBid) return res.status(400).send("Low bid");
+    product.currentBid = Number(amount);
+    product.highestBidder = wallet;
+    await product.save();
+    res.json(product);
+});
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running`));
+app.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));

@@ -15,33 +15,64 @@
         .tab-item.active { color: var(--gold); opacity: 1; font-weight: bold; }
         .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
         .active-screen { display: block; }
+        .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
         .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; position: relative; }
         .card-timer { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.8); color: var(--red); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; }
         .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select, textarea { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
+        .badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: #333; color: var(--gold); margin-right: 5px; }
     </style>
 </head>
 <body>
 
     <div id="screen-home" class="screen active-screen">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-            <div id="ton-connect"></div>
+        <div class="header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
+                <div id="ton-connect"></div>
+            </div>
+            <select id="filter-category" onchange="fetchLots()" style="margin-top:10px; padding:8px;">
+                <option value="All">All Categories</option>
+                <option value="Coins">🪙 Coins</option>
+                <option value="Antiques">🏺 Antiques</option>
+                <option value="Jewelry">💎 Jewelry</option>
+                <option value="Art">🎨 Art</option>
+                <option value="Other">📦 Other</option>
+            </select>
         </div>
         <div id="lots-list"></div>
     </div>
 
     <div id="screen-create" class="screen">
-        <h2>List an Item</h2>
-        <input type="text" id="c-title" placeholder="Title">
-        <textarea id="c-desc" placeholder="Description" rows="3"></textarea>
+        <h2>List New Item</h2>
+        <input type="text" id="c-title" placeholder="Item Title">
+        <textarea id="c-desc" placeholder="Detailed Description" rows="3"></textarea>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <select id="c-cat">
+                <option value="Coins">🪙 Coins</option>
+                <option value="Antiques">🏺 Antiques</option>
+                <option value="Jewelry">💎 Jewelry</option>
+                <option value="Art">🎨 Art</option>
+                <option value="Other">📦 Other</option>
+            </select>
+            <select id="c-cond">
+                <option value="New">💎 Brand New</option>
+                <option value="Excellent">✨ Excellent</option>
+                <option value="Good">👍 Good</option>
+                <option value="Used">🕰️ Used</option>
+            </select>
+        </div>
+
         <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
         <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
+        
         <input type="number" id="c-price" placeholder="Starting Price (USDT)">
-        <div style="margin-top:10px; background:#16181c; padding:10px; border-radius:12px; font-size:0.7rem;">
-            <label><input type="checkbox" id="check-fee"> I agree to 2% fee.</label><br>
-            <label><input type="checkbox" id="check-resp"> I am responsible for item.</label>
+        
+        <div style="margin-top:10px; background:#16181c; padding:10px; border-radius:12px; font-size:0.7rem; color:#aaa;">
+            <label><input type="checkbox" id="check-fee"> I agree to 2% platform fee.</label><br>
+            <label><input type="checkbox" id="check-resp"> I am responsible for condition.</label>
         </div>
         <button class="btn-main" onclick="saveProduct()">PUBLISH LOT</button>
     </div>
@@ -51,8 +82,8 @@
         <div style="background:var(--card); padding:20px; border-radius:15px; margin-bottom:15px;">
             <p id="ui-wallet" style="font-size:0.6rem; color:var(--gray); word-break:break-all;"></p>
             <hr style="border:0.5px solid #333; margin:15px 0;">
-            <p style="margin:5px 0;">Karma: <span id="ui-karma" style="color:var(--gold); font-weight:bold;">--</span></p>
-            <p style="margin:5px 0;">Subscription: <span id="ui-sub-status" style="font-weight:bold;">--</span></p>
+            <p>Karma: <span id="ui-karma" style="color:var(--gold); font-weight:bold;">100</span></p>
+            <p>Status: <span id="ui-sub-status" style="color:#22c55e; font-weight:bold;">Active</span></p>
         </div>
         <button onclick="logout()" style="background:var(--red); color:white; border:none; padding:12px; width:100%; border-radius:12px;">LOGOUT</button>
     </div>
@@ -61,7 +92,7 @@
         <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:10px 0;">← BACK</button>
         <div id="detail-content"></div>
         <div style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
-            <div id="detail-timer" style="color:var(--red); font-weight:bold; text-align:center; margin-bottom:10px;"></div>
+            <div id="detail-timer" style="color:var(--red); font-weight:bold; text-align:center; margin-bottom:10px; font-size:1.1rem;"></div>
             <input type="number" id="bid-input" style="text-align:center;">
             <button class="btn-main" onclick="makeBid()">PLACE BID</button>
         </div>
@@ -90,21 +121,24 @@
             const res = await fetch(`/api/user/${tonConnectUI.wallet.account.address}`);
             const user = await res.json();
             document.getElementById('ui-wallet').innerText = user.wallet;
-            document.getElementById('ui-karma').innerText = user.karma || 0;
-            const sub = document.getElementById('ui-sub-status');
-            sub.innerText = user.isPaid ? "PAID (Active)" : "NOT PAID";
-            sub.style.color = user.isPaid ? "#22c55e" : var(--red);
+            document.getElementById('ui-karma').innerText = user.karma || 100;
         }
 
         async function fetchLots() {
-            const res = await fetch('/api/products'); allLots = await res.json();
-            document.getElementById('lots-list').innerHTML = allLots.map(p => `
+            const filter = document.getElementById('filter-category').value;
+            const res = await fetch('/api/products'); 
+            allLots = await res.json();
+            
+            const filtered = filter === 'All' ? allLots : allLots.filter(p => p.category === filter);
+
+            document.getElementById('lots-list').innerHTML = filtered.map(p => `
                 <div class="lot-card" onclick="openDetails('${p._id}')">
                     <div class="card-timer" data-endtime="${p.endTime}"></div>
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
                     <div style="padding:8px;">
-                        <div style="font-weight:bold; font-size:0.8rem;">${p.title}</div>
-                        <div style="color:var(--gold); font-size:0.9rem;">${p.currentBid} USDT</div>
+                        <span class="badge">${p.condition}</span>
+                        <div style="font-weight:bold; font-size:0.8rem; margin:4px 0;">${p.title}</div>
+                        <div style="color:var(--gold); font-size:0.9rem; font-weight:bold;">${p.currentBid} USDT</div>
                     </div>
                 </div>`).join('');
         }
@@ -113,21 +147,15 @@
             currentP = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `
                 <img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;">
+                <div style="margin-top:10px;"><span class="badge">${currentP.category}</span> <span class="badge">${currentP.condition}</span></div>
                 <h2>${currentP.title}</h2>
                 <div style="display:flex; justify-content:space-between;">
                     <span style="color:var(--gray)">Start: ${currentP.startPrice}</span>
                     <span style="color:var(--gold); font-weight:bold">Current: ${currentP.currentBid} USDT</span>
                 </div>
-                <p>${currentP.description}</p>
+                <p style="color:#ccc;">${currentP.description}</p>
             `;
             showScreen('detail');
-        }
-
-        async function makeBid() {
-            const amount = Number(document.getElementById('bid-input').value);
-            if(amount <= currentP.currentBid) return alert("Bid must be higher!");
-            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
-            fetchLots(); showScreen('home');
         }
 
         setInterval(() => {
@@ -137,17 +165,33 @@
             });
             if(currentP && document.getElementById('screen-detail').classList.contains('active-screen')) {
                 const diff = new Date(currentP.endTime) - new Date();
-                document.getElementById('detail-timer').innerText = diff > 0 ? "Ends in: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+                document.getElementById('detail-timer').innerText = diff > 0 ? "Time left: " + new Date(diff).toISOString().substr(11, 8) : "CLOSED";
             }
         }, 1000);
 
-        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('upload-status').innerText = "✅ Image ready!"; } }); }
+        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('upload-status').innerText = "✅ Ready"; } }); }
         async function logout() { await tonConnectUI.disconnect(); location.reload(); }
+        
         async function saveProduct() {
             if(!document.getElementById('check-fee').checked || !document.getElementById('check-resp').checked) return alert("Accept terms!");
-            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
+            const data = { 
+                title: document.getElementById('c-title').value, 
+                description: document.getElementById('c-desc').value, 
+                mediaUrl: uploadedUrl, 
+                category: document.getElementById('c-cat').value,
+                condition: document.getElementById('c-cond').value,
+                startPrice: document.getElementById('c-price').value, 
+                ownerWallet: tonConnectUI.wallet.account.address 
+            };
             await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             showScreen('home'); fetchLots();
+        }
+
+        async function makeBid() {
+            const amount = Number(document.getElementById('bid-input').value);
+            if(amount <= currentP.currentBid) return alert("Higher bid needed!");
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            fetchLots(); showScreen('home');
         }
 
         fetchLots();
