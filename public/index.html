@@ -9,123 +9,132 @@
     <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
     <style>
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 110px; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }
         [dir="rtl"] { text-align: right; }
-        .header { background: var(--card); border-bottom: 1px solid #333; padding: 12px; position: sticky; top:0; z-index:100; }
-        .lang-btn { background: #1f2229; color: white; border: 1px solid #333; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
-        .lang-btn.active { border-color: var(--gold); color: var(--gold); }
+        
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--card); border-top: 1px solid #333; display: flex; justify-content: space-around; align-items: center; z-index: 2000; }
+        .tab-item { color: var(--gray); font-size: 0.7rem; text-align: center; cursor: pointer; opacity: 0.6; }
+        .tab-item.active { color: var(--gold); opacity: 1; font-weight: bold; }
+        
+        .screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: calc(100% - 70px); background: var(--bg); z-index: 1000; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .active-screen { display: block; }
+
+        .header { background: var(--card); padding: 12px; border-bottom: 1px solid #333; position: sticky; top:0; z-index:100; }
         #lots-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
-        .lot-card { background: var(--card); border-radius: 16px; overflow: hidden; border: 1px solid #2d2f36; }
-        .media-sq { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
-        .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: calc(100% - 30px); padding: 18px; border-radius: 18px; font-weight: 900; position: fixed; bottom: 20px; left: 15px; z-index: 10; cursor: pointer; text-transform: uppercase; }
-        #reg-screen, #karma-screen, #detail-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; padding: 25px; box-sizing: border-box; overflow-y: auto; }
+        .lot-card { background: var(--card); border-radius: 16px; border: 1px solid #2d2f36; overflow: hidden; }
+        .btn-main { background: linear-gradient(135deg, var(--gold), #b8860b); color: #000; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         input, select { width: 100%; background: #1f2229; border: 1px solid #333; padding: 14px; color: white; border-radius: 12px; margin: 8px 0; box-sizing: border-box; }
     </style>
 </head>
 <body id="main-body">
 
-    <div id="reg-screen">
-        <h2 id="reg-title"></h2>
-        <p id="reg-desc" style="font-size:0.85rem; color:var(--gray);"></p>
-        <input type="text" id="reg-tg-id" placeholder="Telegram ID">
-        <input type="text" id="reg-tg-nick" placeholder="@username">
-        <div style="background:#16181c; padding:15px; border-radius:12px; margin:15px 0;">
-            <b id="sub-title"></b>
-            <p id="sub-desc" style="font-size:0.75rem; color:var(--gray); margin:5px 0;"></p>
-            <button onclick="payMembership()" style="width:100%; background:var(--gold); border:none; padding:12px; border-radius:10px; font-weight:bold;">PAY 5 USDT</button>
+    <div id="screen-home" class="screen active-screen">
+        <div class="header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
+                <div id="ton-connect"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="setLang('ru')" style="background:none; border:none; color:white;">RU</button>
+                <button onclick="setLang('en')" style="background:none; border:none; color:white;">EN</button>
+                <button onclick="setLang('he')" style="background:none; border:none; color:white;">HE</button>
+            </div>
         </div>
-        <button class="btn-main" style="position:static; width:100%;" onclick="submitReg()">OK</button>
+        <div id="lots-list"></div>
     </div>
 
-    <div id="karma-screen">
-        <h2 id="karma-title"></h2>
-        <div id="karma-legal" style="font-size:0.8rem; background:#16181c; padding:15px; border-radius:12px; margin-bottom:15px;"></div>
-        <label><input type="checkbox" id="karma-check"> <span id="karma-agree"></span></label>
-        <button class="btn-main" style="position:static; width:100%; margin-top:20px;" onclick="acceptKarma()">ACCEPT</button>
+    <div id="screen-create" class="screen">
+        <h2 id="ui-sell-title">Выставить лот</h2>
+        <input type="text" id="c-title" placeholder="Название">
+        <textarea id="c-desc" placeholder="Описание" rows="3" style="width:100%; background:#1f2229; color:white; border-radius:12px; border:1px solid #333; padding:10px;"></textarea>
+        <select id="c-cat"><option value="Антиквариат">🏺 Антиквариат</option></select>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 ФОТО</button>
+        <input type="number" id="c-price" placeholder="Стартовая цена">
+        <button class="btn-main" onclick="saveProduct()">ОПУБЛИКОВАТЬ (Комиссия 2%)</button>
     </div>
 
-    <div class="header">
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <button class="lang-btn" id="btn-ru" onclick="setLang('ru')">RU</button>
-            <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
-            <button class="lang-btn" id="btn-he" onclick="setLang('he')">HE</button>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-            <div id="ton-connect"></div>
+    <div id="screen-profile" class="screen">
+        <h2 id="ui-profile-title">Мой профиль</h2>
+        <div id="profile-info" style="background:var(--card); padding:20px; border-radius:15px;">
+            <p id="ui-karma">Карма: 100</p>
+            <p id="ui-paid">Статус: --</p>
         </div>
     </div>
 
-    <div id="lots-list"></div>
-    <div id="detail-screen">
-        <button onclick="closeDetails()" style="color:var(--gray); background:none; border:none; padding:15px 0;">← BACK</button>
+    <div id="screen-detail" class="screen">
+        <button onclick="showScreen('home')" style="color:var(--gray); background:none; border:none; padding:15px 0;">← НАЗАД</button>
         <div id="detail-content"></div>
+        <div id="bid-box" style="margin-top:20px; background:var(--card); padding:15px; border-radius:15px;">
+            <input type="number" id="bid-input" style="text-align:center;">
+            <button class="btn-main" onclick="makeBid()">СДЕЛАТЬ СТАВКУ</button>
+            <button class="btn-main" id="pay-winner-btn" style="display:none; background:#22c55e;" onclick="paySeller()">ОПЛАТИТЬ ЛОТ (98% + 2%)</button>
+        </div>
     </div>
-    <button class="btn-main" onclick="openCreate()">+ SELL ITEM</button>
+
+    <div class="tab-bar">
+        <div class="tab-item active" id="tab-home" onclick="showScreen('home')">🏺 ГЛАВНАЯ</div>
+        <div class="tab-item" id="tab-create" onclick="showScreen('create')">➕ ПРОДАТЬ</div>
+        <div class="tab-item" id="tab-profile" onclick="showScreen('profile')">👤 ПРОФИЛЬ</div>
+    </div>
 
     <script>
-        const i18n = {
-            ru: { regTitle: "Регистрация", regDesc: "ID Телеграм нужен для связи.", subTitle: "Взнос 5 USDT", subDesc: "Членский взнос против ботов.", karmaTitle: "Правила Кармы", karmaLegal: "Вы соглашаетесь с правилами честной торговли.", karmaAgree: "Я согласен" },
-            en: { regTitle: "Registration", regDesc: "Telegram ID for contact.", subTitle: "Fee 5 USDT", subDesc: "Membership fee against bots.", karmaTitle: "Karma Rules", karmaLegal: "You agree to fair trading rules.", karmaAgree: "I agree" },
-            he: { regTitle: "הרשמה", regDesc: "מזהה טלגרם ליצירת קשר.", subTitle: "דמי חבר 5 USDT", subDesc: "התשלום מסנן בוטים.", karmaTitle: "חוקי קארמה", karmaLegal: "הנך מסכים לכללי הסחר ההוגן.", karmaAgree: "אני מסכים" }
-        };
-
-        let currentLang = 'ru';
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', buttonRootId: 'ton-connect' });
+        let allLots = []; let currentP = null; let uploadedUrl = "";
+        const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
 
-        function setLang(l) {
-            currentLang = l;
-            document.getElementById('main-body').dir = (l === 'he') ? 'rtl' : 'ltr';
-            updateUI();
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            document.getElementById('screen-' + id).classList.add('active-screen');
+            if(document.getElementById('tab-' + id)) document.getElementById('tab-' + id).classList.add('active');
         }
 
-        function updateUI() {
-            const t = i18n[currentLang];
-            document.getElementById('reg-title').innerText = t.regTitle;
-            document.getElementById('reg-desc').innerText = t.regDesc;
-            document.getElementById('sub-title').innerText = t.subTitle;
-            document.getElementById('sub-desc').innerText = t.subDesc;
-            document.getElementById('karma-title').innerText = t.karmaTitle;
-            document.getElementById('karma-legal').innerText = t.karmaLegal;
-            document.getElementById('karma-agree').innerText = t.karmaAgree;
-        }
-
-        async function checkUser() {
-            if (!tonConnectUI.wallet) return;
-            const res = await fetch(`/api/user/${tonConnectUI.wallet.account.address}`);
-            const user = await res.json();
-            if (!user.tgId) document.getElementById('reg-screen').style.display = 'block';
-            else if (user.isPaid && !user.agreedToTerms) document.getElementById('karma-screen').style.display = 'block';
-        }
-
-        async function payMembership() {
-            const wallet = tonConnectUI.wallet.account.address;
-            const comment = "PAY-" + wallet.slice(-6);
-            const my = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-            const usdt = "EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1";
-            window.location.href = `ton://transfer/${my}?amount=5000000&text=${comment}&jetton=${usdt}`;
-        }
-
-        async function submitReg() {
-            const data = { wallet: tonConnectUI.wallet.account.address, tgId: document.getElementById('reg-tg-id').value, tgNick: document.getElementById('reg-tg-nick').value };
-            await fetch('/api/user/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            checkUser();
-        }
-
-        async function acceptKarma() {
-            if (!document.getElementById('karma-check').checked) return;
-            await fetch('/api/user/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ wallet: tonConnectUI.wallet.account.address, agreedToTerms: true }) });
-            document.getElementById('karma-screen').style.display = 'none';
+        async function paySeller() {
+            const amount = currentP.currentBid * 1000000; // USDT 6 знаков
+            const fee = amount * 0.02;
+            const sellerAmount = amount * 0.98;
+            
+            // Формируем мульти-транзакцию: 98% продавцу и 2% тебе
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 60,
+                messages: [
+                    { address: currentP.ownerWallet, amount: sellerAmount.toString() },
+                    { address: MY_WALLET, amount: fee.toString() }
+                ]
+            };
+            await tonConnectUI.sendTransaction(transaction);
         }
 
         async function fetchLots() {
-            const res = await fetch('/api/products');
-            const data = await res.json();
-            document.getElementById('lots-list').innerHTML = data.map(p => `<div class="lot-card">...</div>`).join('');
+            const res = await fetch('/api/products'); allLots = await res.json();
+            document.getElementById('lots-list').innerHTML = allLots.map(p => `
+                <div class="lot-card" onclick="openDetails('${p._id}')">
+                    <img src="${p.mediaUrl}" class="media-sq" style="width:100%">
+                    <div style="padding:10px;"><b>${p.title}</b><br><span style="color:var(--gold)">${p.currentBid} USDT</span></div>
+                </div>`).join('');
         }
 
-        setLang('ru');
-        setInterval(checkUser, 5000);
+        function openDetails(id) {
+            currentP = allLots.find(x => x._id === id);
+            document.getElementById('detail-content').innerHTML = `<h2>${currentP.title}</h2><p>${currentP.description}</p><h3 style="color:var(--gold)">${currentP.currentBid} USDT</h3>`;
+            showScreen('detail');
+            // Если аукцион завершен и текущий юзер - победитель, показываем кнопку оплаты
+            const isWinner = tonConnectUI.wallet && tonConnectUI.wallet.account.address === currentP.highestBidder;
+            document.getElementById('pay-winner-btn').style.display = (isWinner) ? 'block' : 'none';
+        }
+
+        async function saveProduct() {
+            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address, currency: "USDT" };
+            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            showScreen('home'); fetchLots();
+        }
+
+        async function makeBid() {
+            const amount = document.getElementById('bid-input').value;
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            fetchLots(); showScreen('home');
+        }
+
         fetchLots();
     </script>
 </body>
