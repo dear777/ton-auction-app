@@ -35,7 +35,7 @@ const productSchema = new mongoose.Schema({
 });
 const Product = mongoose.model('Product', productSchema);
 
-// USDT Payment Checker (5 USDT = 5,000,000 units)
+// USDT Payment Checker
 async function checkUsdtPayments() {
     try {
         const res = await axios.get(`https://toncenter.com/api/v2/getJettonTransactions?address=${MY_WALLET}&limit=15`);
