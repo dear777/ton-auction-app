@@ -7,16 +7,13 @@ const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
 
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-const WHITELIST = [
-    "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu",
-    "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_"
-];
+const WHITELIST = ["UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu", "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_"];
 
 const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-mongoose.connect(mongoUri).then(() => console.log('✅ Gold Auction DB Connected'));
+mongoose.connect(mongoUri).then(() => console.log('✅ DB Connected'));
 
 const userSchema = new mongoose.Schema({
     wallet: { type: String, unique: true },
@@ -60,12 +57,5 @@ app.post('/api/bid', async (req, res) => {
     res.json(product);
 });
 
-app.post('/api/products/:id/ask', async (req, res) => {
-    const product = await Product.findById(req.params.id);
-    product.questions.push({ ...req.body });
-    await product.save();
-    res.json(product);
-});
-
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Gold Auction: System Online`));
+app.listen(PORT, () => console.log(`🚀 Gold Auction: Online`));

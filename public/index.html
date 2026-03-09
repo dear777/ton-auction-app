@@ -11,7 +11,6 @@
         :root { --bg: #0d0e10; --card: #16181c; --gold: #d4af37; --text: #fff; --red: #ff4d4d; --gray: #888; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; overflow: hidden; }
         
-        /* LOCK SCREEN ANIMATION */
         #screen-lock { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: var(--bg); z-index: 9999; display: flex; flex-direction: column; 
@@ -41,15 +40,15 @@
     <div id="screen-lock">
         <div class="lock-icon">🏺</div>
         <h2 style="color: var(--gold); font-weight: 900;">GOLD AUCTION</h2>
-        <p style="color: var(--gray); font-size: 0.9rem; padding: 0 40px;">Please connect your wallet to access the global auction.</p>
-        <div id="ton-connect-lock"></div>
+        <p style="color: var(--gray); font-size: 0.9rem; padding: 0 40px; margin-bottom: 30px;">Please connect your wallet to access the global auction.</p>
+        <div id="ton-connect-button"></div>
     </div>
 
     <div id="screen-home" class="screen">
         <div class="header">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-weight:900; color:var(--gold);">GOLD AUCTION</div>
-                <div id="ton-connect"></div>
+                <div id="header-connect"></div>
             </div>
             <select id="filter-category" onchange="fetchLots()" style="margin-top:10px;">
                 <option value="All">All Items</option>
@@ -69,7 +68,8 @@
             <select id="c-cat"><option value="Coins">Coins</option><option value="Watch">Watches</option></select>
             <select id="c-curr"><option value="USDT">USDT</option><option value="TON">TON</option><option value="BTC">BTC</option></select>
         </div>
-        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px;">📸 UPLOAD PHOTO</button>
+        <button onclick="openUpload()" style="background:#444; color:#fff; border:none; padding:15px; width:100%; border-radius:12px; margin: 10px 0;">📸 UPLOAD PHOTO</button>
+        <div id="upload-status" style="font-size:0.7rem; color:var(--gold); text-align:center;"></div>
         <input type="number" id="c-price" placeholder="Starting Price">
         <button class="btn-main" onclick="saveProduct()">PUBLISH</button>
     </div>
@@ -105,28 +105,41 @@
     </div>
 
     <script>
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', buttonRootId: 'ton-connect' });
-        const tonConnectLock = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', buttonRootId: 'ton-connect-lock' });
+        // ЕДИНСТВЕННЫЙ ОБЪЕКТ АВТОРИЗАЦИИ
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
+            manifestUrl: 'https://ton-auction-bot.onrender.com/tonconnect-manifest.json', 
+            buttonRootId: 'ton-connect-button' 
+        });
         
         let allLots = []; let currentP = null; let uploadedUrl = "";
 
         function checkAuth() {
-            const wallet = tonConnectUI.wallet || tonConnectLock.wallet;
-            if (wallet) {
+            if (tonConnectUI.wallet) {
+                // Если кошелек подключен
                 document.getElementById('screen-lock').style.display = 'none';
                 document.getElementById('tab-nav').style.display = 'flex';
                 document.body.style.overflow = 'auto';
+                
+                // Переносим кнопку в хедер, если ее там нет
+                const btn = document.getElementById('ton-connect-button');
+                document.getElementById('header-connect').appendChild(btn);
+                
                 showScreen('home');
                 fetchLots();
             } else {
+                // Если кошелек отключен
                 document.getElementById('screen-lock').style.display = 'flex';
                 document.getElementById('tab-nav').style.display = 'none';
                 document.body.style.overflow = 'hidden';
+                
+                // Возвращаем кнопку на экран блокировки
+                const btn = document.getElementById('ton-connect-button');
+                document.getElementById('screen-lock').appendChild(btn);
             }
         }
 
+        // Слушаем изменения статуса
         tonConnectUI.onStatusChange(checkAuth);
-        tonConnectLock.onStatusChange(checkAuth);
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
@@ -153,27 +166,71 @@
                     <img src="${p.mediaUrl}" style="width:100%; aspect-ratio:1/1; object-fit:cover;">
                     <div style="padding:8px;">
                         <div style="font-weight:bold; font-size:0.75rem;">${p.title}</div>
-                        <div class="price-row">Start Price: <b>${p.startPrice} ${p.currency}</b></div>
-                        <div class="price-row">Current Bid: <b style="color:var(--gold)">${p.currentBid} ${p.currency}</b></div>
+                        <div class="price-row">Start: <b>${p.startPrice} ${p.currency}</b></div>
+                        <div class="price-row">Now: <b style="color:var(--gold)">${p.currentBid} ${p.currency}</b></div>
                     </div>
                 </div>`).join('');
+            startTimers();
         }
 
         function openDetails(id) {
             currentP = allLots.find(x => x._id === id);
             document.getElementById('detail-content').innerHTML = `<img src="${currentP.mediaUrl}" style="width:100%; border-radius:15px;"><h2>${currentP.title}</h2><p>${currentP.description}</p>`;
+            renderQuestions();
             showScreen('detail');
         }
 
-        async function logout() { await tonConnectUI.disconnect(); await tonConnectLock.disconnect(); location.reload(); }
-        
-        setInterval(() => {
-            document.querySelectorAll('.card-timer').forEach(el => {
-                const diff = new Date(el.dataset.endtime) - new Date();
-                el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
-            });
-        }, 1000);
+        function renderQuestions() {
+            const list = document.getElementById('questions-list');
+            list.innerHTML = currentP.questions.map(q => `
+                <div class="q-box">
+                    <span style="font-size:0.7rem; color:var(--gold)">${q.isSeller ? 'SELLER' : 'BUYER'}</span>
+                    <p style="margin:5px 0;">${q.text}</p>
+                </div>
+            `).join('');
+        }
 
+        async function sendQuestion() {
+            const text = document.getElementById('q-input').value;
+            if(!text) return;
+            const wallet = tonConnectUI.wallet.account.address;
+            const res = await fetch(`/api/products/${currentP._id}/ask`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ wallet, text, isSeller: (wallet === currentP.ownerWallet) })
+            });
+            currentP = await res.json();
+            renderQuestions();
+            document.getElementById('q-input').value = '';
+        }
+
+        async function makeBid() {
+            const amount = Number(document.getElementById('bid-input').value);
+            if(amount <= currentP.currentBid) return alert("Bid higher!");
+            await fetch('/api/bid', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ productId: currentP._id, wallet: tonConnectUI.wallet.account.address, amount }) });
+            fetchLots(); showScreen('home');
+        }
+
+        function openUpload() { cloudinary.openUploadWidget({ cloudName: 'dptgowe5b', uploadPreset: 'tonpreset' }, (err, res) => { if (!err && res.event === "success") { uploadedUrl = res.info.secure_url; document.getElementById('upload-status').innerText = "✅ Image Ready"; } }); }
+        
+        async function saveProduct() {
+            const data = { title: document.getElementById('c-title').value, description: document.getElementById('c-desc').value, mediaUrl: uploadedUrl, category: document.getElementById('c-cat').value, currency: document.getElementById('c-curr').value, startPrice: document.getElementById('c-price').value, ownerWallet: tonConnectUI.wallet.account.address };
+            await fetch('/api/products', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            showScreen('home'); fetchLots();
+        }
+
+        async function logout() { await tonConnectUI.disconnect(); location.reload(); }
+        
+        function startTimers() {
+            setInterval(() => {
+                document.querySelectorAll('.card-timer').forEach(el => {
+                    const diff = new Date(el.dataset.endtime) - new Date();
+                    el.innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "CLOSED";
+                });
+            }, 1000);
+        }
+
+        // Первичная проверка при загрузке
         checkAuth();
     </script>
 </body>
