@@ -7,7 +7,7 @@ const token = process.env.TELEGRAM_TOKEN;
 const mongoUri = process.env.MONGO_URI; 
 
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
-const USDT_MASTER = "EQCxE6mUtQWq7sznu_G9vhqS6S86shwyuS_T5qPOW_S2V8W1";
+const USDT_MASTER = "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_";
 
 // Исключения для друзей
 const WHITELIST = ["UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu"]; 
