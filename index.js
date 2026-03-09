@@ -1,14 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
-
 app.use(express.json());
 app.use(express.static('public'));
 
 const mongoUri = process.env.MONGO_URI; 
 const MY_WALLET = "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu";
 
-// ТВОЙ АДМИНСКИЙ ДОСТУП (Whitelist)
+// АДМИНЫ (ТЫ ТУТ)
 const PAID_USERS = [
     "UQDqKsn27Rq-w8NYpWE7gv-X2wWm2ntCFlvs6gboqDP8A0xu",
     "UQCMBGKDkemwCw5ri-26tLDuEc2DgZ-Nn3DJeAjaOzqHhst_"
